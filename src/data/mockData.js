@@ -47,3 +47,36 @@ export const profileProjects = [
 export const discovery = [
  { label: 'Esplora', avatar: users[5].avatar }, { label: '3D', avatar: users[6].avatar }, { label: 'Video', avatar: users[0].avatar }, { label: 'Design', avatar: users[3].avatar }, { label: 'Foto', avatar: users[1].avatar }, { label: 'Musica', avatar: users[2].avatar },
 ];
+
+export const searchCategories = [
+ { label: 'Video', icon: 'Video', color: '#d6cb4d' },
+ { label: 'Design', icon: 'Paintbrush', color: '#c69b7e' },
+ { label: 'Foto', icon: 'Camera', color: '#a5a8cf' },
+ { label: '3D', icon: 'Box', color: '#b3a0ca' },
+ { label: 'Musica', icon: 'Music2', color: '#8bb9a4' },
+ { label: 'Sviluppo', icon: 'Code2', color: '#8cb7c6' },
+ { label: 'UX/UI', icon: 'PanelsTopLeft', color: '#c595b3' },
+ { label: 'Branding', icon: 'Type', color: '#c7b28d' },
+ { label: 'Illustrazione', icon: 'PenTool', color: '#b4ac8b' },
+ { label: 'Motion', icon: 'Clapperboard', color: '#91a7b5' },
+ { label: 'Architettura', icon: 'Building2', color: '#afa49b' },
+ { label: 'Sound Design', icon: 'AudioLines', color: '#91afa3' },
+];
+export const initialRecentSearches = ['color grading', 'videomaker milano', 'documentario', 'fotografia paesaggi', 'sound design'];
+export const searchPeople = users.map((user, i) => ({ ...user,
+ city: ['Milano', 'Milano', 'Bologna', 'Torino', 'Roma', 'Bologna', 'Firenze'][i],
+ skills: [ ['Video', 'Videomaking', 'Color Grading', 'Documentario'], ['Foto', 'Fotografia', 'Paesaggi', 'Architettura'], ['Musica', 'Sound Design', 'Produzione'], ['Design', 'UX/UI', 'Branding'], ['Sviluppo', 'Developer', 'Web'], ['Illustrazione', 'Design', 'Branding'], ['3D', 'Motion', 'Design'] ][i],
+}));
+export const featuredPostIds = ['p1', 'p3', 'p5', 'p4'];
+const normalizeSearch = text => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+export function searchMockData(query) {
+ const terms = normalizeSearch(query).split(/\s+/).filter(Boolean);
+ if (!terms.length) return { people: [], projects: [], portfolio: [] };
+ const matches = fields => { const text = normalizeSearch(fields.join(' ')); return terms.every(term => text.includes(term)); };
+ const people = searchPeople.filter(user => matches([user.name, user.username, user.profession, user.city, ...user.skills]));
+ const matchingPosts = posts.filter(post => {
+  const author = searchPeople.find(user => user.id === post.user.id);
+  return matches([post.title, post.description, post.user.username, post.user.profession, post.location, post.category, post.discovery, ...post.tags, ...(author?.skills || [])]);
+ });
+ return { people, projects: matchingPosts.filter(post => post.type === 'project'), portfolio: matchingPosts.filter(post => post.type === 'portfolio') };
+}
