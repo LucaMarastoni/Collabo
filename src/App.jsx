@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import { currentUser, initialConversations } from './data/mockData';
 export default function App() {
  const [postStates, setPostStates] = useState({});
+ const [personStates, setPersonStates] = useState({});
  const [conversations, setConversations] = useState(initialConversations);
  const [user, setUser] = useState(currentUser);
  const [toast, setToast] = useState('');
@@ -18,5 +19,5 @@ export default function App() {
  useEffect(() => () => clearTimeout(timer.current), []);
  function notify(message) { clearTimeout(timer.current); setToast(message); timer.current = setTimeout(() => setToast(''), 2200); }
  function updatePost(id, patch) { setPostStates(prev => ({ ...prev, [id]: { ...prev[id], ...patch } })); }
- return <><a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main').focus(); }}>Vai al contenuto</a><Sidebar/><main className="app-shell" id="main" tabIndex={-1}><Routes><Route path="/" element={<Home postStates={postStates} updatePost={updatePost} notify={notify}/>}/><Route path="/messages" element={<Messages conversations={conversations} setConversations={setConversations}/>}/><Route path="/profile" element={<Profile user={user} setUser={setUser} notify={notify}/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><BottomNav/><Toast message={toast}/></>;
+ return <><a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main').focus(); }}>Vai al contenuto</a><Sidebar/><main className="app-shell" id="main" tabIndex={-1}><Routes><Route path="/" element={<Home postStates={postStates} updatePost={updatePost} personStates={personStates} setPersonStates={setPersonStates} notify={notify}/>}/><Route path="/messages" element={<Messages conversations={conversations} setConversations={setConversations}/>}/><Route path="/profile" element={<Profile user={user} setUser={setUser} notify={notify} postStates={postStates} updatePost={updatePost}/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><BottomNav/><Toast message={toast}/></>;
 }
