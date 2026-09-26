@@ -1,13 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ProjectPost from './ProjectPost';
-import { Heart, X, RotateCcw, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, Pointer, CircleHelp } from 'lucide-react';
+import { Heart, X, RotateCcw, Sparkles, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, Pointer, CircleHelp } from 'lucide-react';
 const THRESHOLD = 110;
 const TAP_SLOP = 8;
 const OPEN_SHEET = 40;
 const CLOSE_SHEET = 100;
-// Action buttons are hidden for now: gestures are taught by the coach overlay and the hint row.
-const SHOW_ACTIONS = false;
 const COACH_KEY = 'collab.deckCoachSeen';
 function readCoachSeen() { try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return false; } }
 function writeCoachSeen() { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* storage unavailable */ } }
@@ -59,7 +57,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   const { dx, dy } = position.current;
   const targetX = sign * (window.innerWidth + 240);
   // Keep the speed of the fling: a fast flick leaves fast, a slow drag glides out.
-  const ms = clamp(Math.abs(targetX - dx) / Math.max(Math.abs(vx), 1.4), 180, 360);
+  const ms = clamp(Math.abs(targetX - dx) / Math.max(Math.abs(vx), 1.4), 180, 250);
   el.style.setProperty('--exit-ms', `${ms}ms`);
   el.classList.remove('is-dragging');
   el.classList.add('is-leaving');
@@ -123,15 +121,10 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
     <button className="primary-button" onClick={dismissCoach}>Ho capito</button>
    </div>}
   </div>
-  {!SHOW_ACTIONS && top && <div className="deck-hint">
-   <span aria-hidden="true" className="hint-pass"><ArrowLeft size={14}/>Non mi interessa</span>
-   {canUndo && !exit ? <button className="hint-undo" onClick={onUndo} aria-label="Annulla ultima scelta"><RotateCcw size={13}/>Annulla</button> : <span className="hint-dot" aria-hidden="true"/>}
-   <span aria-hidden="true" className="hint-like">Che figo<ArrowRight size={14}/></span>
-  </div>}
-  {SHOW_ACTIONS && <div className="deck-actions">
-   <button className={`deck-button pass ${exit === 'left' ? 'pop' : ''}`} aria-label="Non mi interessa" disabled={!top} onClick={() => decide('left')}><X size={26}/></button>
-   <button className="deck-button undo" aria-label="Annulla ultima scelta" disabled={!canUndo || !!exit} onClick={onUndo}><RotateCcw size={18}/></button>
-   <button className={`deck-button like ${exit === 'right' ? 'pop' : ''}`} aria-label="Che figo, salva il progetto nel profilo" disabled={!top} onClick={() => decide('right')}><Heart size={25} fill={exit === 'right' ? 'currentColor' : 'none'}/></button>
+  {(top || canUndo) && <div className={`deck-actions ${exit ? `exiting-${exit}` : ''}`} role="group" aria-label="Azioni sul progetto">
+   <button className="deck-button pass" aria-label="Passa questo progetto" disabled={!top || !!exit} onClick={() => decide('left')}><X size={20} aria-hidden="true"/><span>Passa</span></button>
+   <button className="deck-button undo" aria-label="Annulla ultima scelta" disabled={!canUndo || !!exit} onClick={onUndo}><RotateCcw size={18} aria-hidden="true"/><span>Indietro</span></button>
+   <button className="deck-button like" aria-label="Collabora con questo progetto" disabled={!top || !!exit} onClick={() => decide('right')}><Sparkles size={19} aria-hidden="true"/><span>Collabo</span><ArrowRight size={18} aria-hidden="true"/></button>
   </div>}
  </section>;
 }
@@ -159,7 +152,7 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
   preloaded.current = cache;
   return () => { mounted.current = false; requestedIndex.current = -1; };
  }, [person.id]);
- useEffect(() => { onShow?.(post.id); }, [post.id]);
+ useLayoutEffect(() => { onShow?.(post.id); }, [post.id]);
  function showSlide(target) {
   const next = Math.max(0, Math.min(slides.length - 1, target));
   requestedIndex.current = next;

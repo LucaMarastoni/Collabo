@@ -16,11 +16,11 @@ export default function Home({ postStates, updatePost, personStates, setPersonSt
  const selectedPerson = creators.find(person => person.posts.some(post => post.id === selectedPost))?.id;
  function openSearch(event) { returnFocus.current = event.currentTarget; setParams(previous => { const next = new URLSearchParams(previous); next.set('search', '1'); return next; }); }
  function closeSearch() { setParams(previous => { const next = new URLSearchParams(previous); next.delete('search'); return next; }, { replace: true }); requestAnimationFrame(() => returnFocus.current?.focus({ preventScroll: true })); }
- function openPost(id) { setCategory('Esplora'); setParams({ post: id }, { replace: true }); }
+ function openPost(id) { setCategory('Esplora'); setReturning(null); setParams({ post: id }, { replace: true }); }
  const people = creators
   .map(person => category === 'Esplora' ? person : { ...person, posts: person.posts.filter(post => post.discovery === category) })
   .filter(person => person.posts.length && (person.id === selectedPerson || !personStates[person.id]))
-  .sort((a, b) => (b.id === selectedPerson) - (a.id === selectedPerson));
+  .sort((a, b) => (b.id === returning?.id) - (a.id === returning?.id) || (b.id === selectedPerson) - (a.id === selectedPerson));
  function decide(personId, choice, postId) {
   setPersonStates(previous => ({ ...previous, [personId]: choice }));
   const post = creators.find(person => person.id === personId).posts.find(item => item.id === postId);
@@ -35,6 +35,7 @@ export default function Home({ postStates, updatePost, personStates, setPersonSt
   if (!last) return;
   setPersonStates(previous => { const next = { ...previous }; delete next[last.personId]; return next; });
   if (last.postId) updatePost(last.postId, { cool: false });
+  if (category !== 'Esplora' && !creators.find(person => person.id === last.personId).posts.some(post => post.discovery === category)) setCategory('Esplora');
   setReturning({ id: last.personId, from: last.choice === 'liked' ? 'right' : 'left' });
   setHistory(previous => previous.slice(0, -1));
  }
