@@ -116,6 +116,18 @@ export const profileProjects = [
  { id: 'first-light', title: 'Prima luce', description: 'Una serie di mini documentari girati nelle prime ore del mattino.', image: images.sunrise, status: 'Completato', phase: 'Pubblicato', progress: 100, period: 'Apr – Lug 2026', location: 'Trentino, Italia', nextStep: 'Serie pubblicata. Tutti gli episodi sono disponibili.', collaborators: [{ userId: 'alice', role: 'Fotografia' }, { userId: 'andrea', role: 'Musiche originali' }], applications: [] },
 ];
 
+export const initialNotifications = [
+ { id: 'n1', group: 'Oggi', type: 'message', user: users[0], title: 'Marco ti ha scritto', description: 'Ti va di parlarne davanti a un caffè? ☕', time: '12:42', href: '/messages?chat=marco', read: false },
+ { id: 'n2', group: 'Oggi', type: 'application', user: users[13], title: 'Chiara si è candidata', description: 'Montaggio video · Al di là della città', time: '11:26', href: '/profile?project=beyond-city', read: false },
+ { id: 'n3', group: 'Oggi', type: 'application', user: users[8], title: 'Tommaso si è candidato', description: 'Identità visiva · Le persone dietro le idee', time: '09:18', href: '/profile?project=people-ideas', read: false },
+ { id: 'n4', group: 'Ieri', type: 'message', user: users[1], title: 'Giulia ti ha scritto', description: 'Ti ho mandato la moodboard, fammi sapere!', time: 'Ieri', href: '/messages?chat=giulia', read: false },
+ { id: 'n5', group: 'Ieri', type: 'project', image: images.coast, title: 'Blue hours è in fase di riprese', description: 'Il progetto ha raggiunto il 65% di avanzamento.', time: 'Ieri', href: '/profile?project=blue-hours', read: true },
+ { id: 'n6', group: 'Ieri', type: 'application', user: users[11], title: 'Beatrice si è candidata', description: 'Scenografia · Le persone dietro le idee', time: 'Ieri', href: '/profile?project=people-ideas', read: false },
+ { id: 'n7', group: 'Ieri', type: 'application', user: users[15], title: 'Sara si è candidata', description: 'Motion design · Blue hours', time: 'Ieri', href: '/profile?project=blue-hours', read: true },
+ { id: 'n8', group: 'Questa settimana', type: 'message', user: users[10], title: 'Karim ti ha scritto', description: 'Ascolta questa prima selezione quando puoi.', time: '3 giorni fa', href: '/messages?chat=karim', read: true },
+ { id: 'n9', group: 'Questa settimana', type: 'project', image: images.music, title: 'Live from the studio è completo', description: 'Il video è pubblicato e il progetto è concluso.', time: '5 giorni fa', href: '/profile?project=live-studio', read: true },
+];
+
 export const discovery = [
  { label: 'Esplora', avatar: users[5].avatar }, { label: '3D', avatar: users[6].avatar }, { label: 'Video', avatar: users[0].avatar }, { label: 'Design', avatar: users[3].avatar }, { label: 'Foto', avatar: users[1].avatar }, { label: 'Musica', avatar: users[2].avatar },
 ];

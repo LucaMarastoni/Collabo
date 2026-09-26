@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import ProfileDeck from '../components/ProfileDeck';
 import SearchOverlay from '../components/SearchOverlay';
 import { creators, discovery, initialRecentSearches } from '../data/mockData';
-export default function Home({ postStates, updatePost, personStates, setPersonStates, notify }) {
+export default function Home({ postStates, updatePost, personStates, setPersonStates, notify, notificationCount }) {
  const [params, setParams] = useSearchParams();
  const [category, setCategory] = useState('Esplora');
  const [recents, setRecents] = useState(initialRecentSearches);
@@ -40,5 +40,5 @@ export default function Home({ postStates, updatePost, personStates, setPersonSt
   setHistory(previous => previous.slice(0, -1));
  }
  function collaborate(postId) { updatePost(postId, { requested: true }); notify('Richiesta di collaborazione inviata'); }
- return <><div className="home-screen" inert={searchOpen ? true : undefined}><Header onOpenSearch={openSearch}/><nav className="discovery-row" aria-label="Esplora per disciplina">{discovery.map(item => <button key={item.label} className={`discovery-item ${category === item.label ? 'active' : ''}`} aria-pressed={category === item.label} onClick={() => setCategory(item.label)}><span className="discovery-ring"><img src={item.avatar} alt=""/></span><span>{item.label}</span></button>)}</nav><ProfileDeck key={selectedPost || category} people={people} startPostId={selectedPost} postStates={postStates} onCollaborate={collaborate} onDecide={decide} onUndo={undo} canUndo={history.length > 0} returning={returning}/></div>{searchOpen && <SearchOverlay onClose={closeSearch} onOpenPost={openPost} recents={recents} setRecents={setRecents} postStates={postStates} updatePost={updatePost}/>}</>;
+ return <><div className="home-screen" inert={searchOpen ? true : undefined}><Header onOpenSearch={openSearch} notificationCount={notificationCount}/><nav className="discovery-row" aria-label="Esplora per disciplina">{discovery.map(item => <button key={item.label} className={`discovery-item ${category === item.label ? 'active' : ''}`} aria-pressed={category === item.label} onClick={() => setCategory(item.label)}><span className="discovery-ring"><img src={item.avatar} alt=""/></span><span>{item.label}</span></button>)}</nav><ProfileDeck key={selectedPost || category} people={people} startPostId={selectedPost} postStates={postStates} onCollaborate={collaborate} onDecide={decide} onUndo={undo} canUndo={history.length > 0} returning={returning}/></div>{searchOpen && <SearchOverlay onClose={closeSearch} onOpenPost={openPost} recents={recents} setRecents={setRecents} postStates={postStates} updatePost={updatePost}/>}</>;
 }
