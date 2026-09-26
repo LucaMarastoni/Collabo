@@ -24,4 +24,4 @@ Il progetto usa `base: './'` e `HashRouter`, quindi funziona anche nella sottoca
 
 Carica il progetto in un repository GitHub con branch `main`, quindi in **Settings → Pages → Build and deployment → Source** seleziona **GitHub Actions**. Il workflow incluso pubblica `dist` a ogni push su `main` e può essere avviato manualmente. Per un branch diverso, aggiorna `.github/workflows/deploy.yml`.
 
-Fotografie remote da Unsplash e font da Google Fonts richiedono connessione. Il link portfolio dimostrativo apre Vimeo. Like, salvataggi, richieste, commenti, modifiche profilo e messaggi rimangono in memoria durante la navigazione.
+Fotografie remote da Unsplash e font da Google Fonts richiedono connessione. Il link portfolio dimostrativo apre Vimeo. Like, salvataggi, richieste, candidature, modifiche profilo e messaggi rimangono in memoria durante la navigazione.
