@@ -47,8 +47,8 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   el.dataset.dir = p > 0.25 ? 'like' : p < -0.25 ? 'pass' : '';
  }
  function schedule(dx, dy) { position.current = { ...position.current, dx, dy }; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => paint(dx, dy)); }
- function release() { const el = deckRef.current; el?.classList.remove('is-dragging', 'is-pressed'); cancelAnimationFrame(frame.current); paint(0, 0); }
- useLayoutEffect(() => { setExit(null); deckRef.current?.classList.remove('is-leaving', 'is-dragging', 'is-pressed'); paint(0, 0, 1); }, [top?.id]);
+ function release() { deckRef.current?.classList.remove('is-dragging'); cancelAnimationFrame(frame.current); paint(0, 0); }
+ useLayoutEffect(() => { setExit(null); deckRef.current?.classList.remove('is-leaving', 'is-dragging'); paint(0, 0, 1); }, [top?.id]);
  function decide(direction, { vx = 0, vy = 0 } = {}) {
   if (!top || exit) return;
   dismissCoach();
@@ -62,7 +62,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   // Keep the speed of the fling: a fast flick leaves fast, a slow drag glides out.
   const ms = clamp(Math.abs(targetX - dx) / Math.max(Math.abs(vx), 1.4), 180, 360);
   el.style.setProperty('--exit-ms', `${ms}ms`);
-  el.classList.remove('is-dragging', 'is-pressed');
+  el.classList.remove('is-dragging');
   el.classList.add('is-leaving');
   paint(targetX, dy + clamp(vy, -1.5, 1.5) * ms * 0.6);
   const id = top.id, postId = shownPost.current;
@@ -77,7 +77,6 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
    // Grabbing the lower half tilts the card the other way, like holding a real card.
    position.current.tilt = event.clientY - box.top < box.height / 2 ? 1 : -1;
    event.currentTarget.setPointerCapture(event.pointerId);
-   deckRef.current.classList.add('is-pressed');
   },
   onPointerMove(event) {
    const g = gesture.current;
@@ -142,10 +141,48 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
  const [index, setIndex] = useState(() => Math.max(0, slides.findIndex(slide => slide.post.id === startPostId)));
  const [sheet, setSheet] = useState(false);
  const cardRef = useRef(null);
+ const shownIndex = useRef(index);
+ const requestedIndex = useRef(index);
+ const preloaded = useRef(new Map());
+ const mounted = useRef(false);
  const slide = slides[Math.min(index, slides.length - 1)];
  const { post } = slide;
+ useEffect(() => {
+  mounted.current = true;
+  requestedIndex.current = shownIndex.current;
+  const cache = new Map();
+  for (const item of slides) {
+   if (cache.has(item.image)) continue;
+   const image = new Image();
+   image.src = item.image;
+   cache.set(item.image, image);
+  }
+  preloaded.current = cache;
+  return () => { mounted.current = false; requestedIndex.current = -1; };
+ }, [person.id]);
  useEffect(() => { onShow?.(post.id); }, [post.id]);
- function step(delta) { setIndex(current => Math.max(0, Math.min(slides.length - 1, current + delta))); }
+ function showSlide(target) {
+  const next = Math.max(0, Math.min(slides.length - 1, target));
+  requestedIndex.current = next;
+  if (next === shownIndex.current) return;
+  const url = slides[next].image;
+  let image = preloaded.current.get(url);
+  if (!image) {
+   image = new Image();
+   image.src = url;
+   preloaded.current.set(url, image);
+  }
+  const commit = () => {
+   if (!mounted.current || requestedIndex.current !== next || !image.naturalWidth) return;
+   shownIndex.current = next;
+   setIndex(next);
+  };
+  const fail = () => { if (requestedIndex.current === next) requestedIndex.current = shownIndex.current; };
+  if (image.decode) image.decode().then(commit).catch(fail);
+  else if (image.complete) image.naturalWidth ? commit() : fail();
+  else { image.addEventListener('load', commit, { once: true }); image.addEventListener('error', fail, { once: true }); }
+ }
+ function step(delta) { showSlide(requestedIndex.current + delta); }
  function onTap(event) { const box = event.currentTarget.getBoundingClientRect(); step(event.clientX - box.left < box.width / 3 ? -1 : 1); }
  function closeSheet() { setSheet(false); requestAnimationFrame(() => cardRef.current?.focus({ preventScroll: true })); }
  function onKeyDown(event) {
@@ -160,7 +197,7 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
   onPointerUp: event => handlers.onPointerEnd(event, onTap, () => setSheet(true)), onPointerCancel: event => handlers.onPointerEnd(event, onTap, () => setSheet(true)),
  };
  return <article id={post.id} className={className} style={style} {...live}>
-  <img key={slide.image + index} className="deck-photo" src={slide.image} alt={slide.alt} draggable={false}/>
+  <img className="deck-photo" src={slide.image} alt={slide.alt} draggable={false}/>
   {slides.length > 1 && <div className="deck-progress" aria-hidden="true">{slides.map((item, i) => <span key={i} className={i <= index ? 'seen' : ''}/>)}</div>}
   {!hidden && <span className="visually-hidden" aria-live="polite">{`Lavoro ${index + 1} di ${slides.length}: ${post.title}`}</span>}
   <div className="deck-overlay">
@@ -174,7 +211,7 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
   </div>
   <span className="deck-stamp like">Che figo!</span>
   <span className="deck-stamp pass">Non mi interessa</span>
-  {sheet && <DetailSheet person={person} post={post} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => { setIndex(slides.findIndex(item => item.post.id === id)); }} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
+  {sheet && <DetailSheet person={person} post={post} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => showSlide(slides.findIndex(item => item.post.id === id))} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
  </article>;
 }
 function DetailSheet({ person, post, requested, onCollaborate, onShowPost, onDecide, onClose }) {
