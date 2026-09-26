@@ -41,7 +41,6 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   el.style.setProperty('--dx', `${dx}px`);
   el.style.setProperty('--dy', `${dy}px`);
   el.style.setProperty('--rot', `${clamp(dx * 0.06 * tilt, -35, 35)}deg`);
-  el.style.setProperty('--lift', Math.abs(p));
   el.style.setProperty('--like', Math.max(0, p));
   el.style.setProperty('--pass', Math.max(0, -p));
   el.dataset.dir = p > 0.25 ? 'like' : p < -0.25 ? 'pass' : '';
