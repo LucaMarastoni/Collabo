@@ -124,7 +124,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   {(top || canUndo) && <div className={`deck-actions ${exit ? `exiting-${exit}` : ''}`} role="group" aria-label="Azioni sul progetto">
    <button className="deck-button pass" aria-label="Passa questo progetto" disabled={!top || !!exit} onClick={() => decide('left')}><X size={20} aria-hidden="true"/><span>Passa</span></button>
    <button className="deck-button undo" aria-label="Annulla ultima scelta" disabled={!canUndo || !!exit} onClick={onUndo}><RotateCcw size={18} aria-hidden="true"/><span>Indietro</span></button>
-   <button className="deck-button like" aria-label="Collabora con questo progetto" disabled={!top || !!exit} onClick={() => decide('right')}><Sparkles size={19} aria-hidden="true"/><span>Collabo</span><ArrowRight size={18} aria-hidden="true"/></button>
+   <button className="deck-button like" aria-label="Collabora con questo progetto" disabled={!top || !!exit} onClick={() => decide('right')}><Sparkles size={19} aria-hidden="true"/><span>Collab</span><ArrowRight size={18} aria-hidden="true"/></button>
   </div>}
  </section>;
 }

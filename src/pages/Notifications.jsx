@@ -41,7 +41,7 @@ export default function Notifications({ notifications, setNotifications }) {
      <h2>{group}</h2>
      <div className="notification-list">{items.map(item => {
       const Icon = typeIcons[item.type];
-      return <Link to={item.href} key={item.id} className={`notification-item ${item.read ? '' : 'unread'}`} onClick={() => markRead(item.id)}>
+      return <Link to={item.href} key={item.id} className={`notification-item ${item.read ? '' : 'is-unread'}`} onClick={() => markRead(item.id)}>
        <span className="notification-avatar"><img src={item.user?.avatar || item.image} alt=""/><span className={`notification-type ${item.type}`}><Icon size={13} aria-hidden="true"/></span></span>
        <span className="notification-copy"><strong>{item.title}</strong><span>{item.description}</span><small>{item.time}</small></span>
        <span className="notification-trailing">{!item.read && <span className="notification-unread-dot" aria-label="Da leggere"/>}<ChevronRight size={17} aria-hidden="true"/></span>
