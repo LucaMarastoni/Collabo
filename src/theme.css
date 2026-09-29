@@ -291,3 +291,67 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 /* Page transitions */
 .route{animation:route-in .38s var(--ease-spring) backwards}
 @keyframes route-in{from{opacity:0;transform:translateY(10px)}}
+
+/* ── Home: ordered and recognisable ── */
+/* Header: just brand, search and notifications (profile lives in the tab bar) */
+.home-screen .header-actions>a[href$="profile"]{display:none}
+.home-screen .header{height:60px}
+
+/* Card caption: what → title → who, left aligned, one rhythm */
+.deck-card .deck-overlay{padding:90px 20px 24px}
+.deck-caption{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.deck-card .deck-type{order:0;margin:0;padding:5px 11px;border-radius:var(--r-pill);background:#ffffff1f;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:12px;font-weight:550}
+.deck-card .deck-type.project{background:var(--accent);color:var(--accent-ink)}
+.deck-card .deck-overlay h3{margin:0;font-size:26px;line-height:1.12}
+.deck-card .deck-person{margin-top:2px;color:#d4d4d8}
+.deck-card .deck-more{bottom:6px;width:44px;height:24px;display:grid;place-items:center;padding:0}
+.deck-help{width:30px;height:30px;top:24px;right:14px;background:#09090b59;border:0}
+.deck-help svg{width:17px;height:17px}
+
+/* Actions: undo · pass · Collab — round, centred, the primary one stands out */
+.deck-actions{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:14px;max-width:none}
+.deck-actions .deck-button{flex:none;width:auto;padding:0}
+.deck-actions .deck-button.undo{width:44px;height:44px;border:0;background:var(--surface-1);color:var(--text-2)}
+.deck-actions .deck-button.pass{width:60px;height:60px;background:var(--surface-2);color:var(--danger)}
+.deck-actions .deck-button.pass svg{color:var(--danger)}
+.deck-actions .deck-button.like{height:60px;padding:0 26px;gap:8px;font-size:16px;font-weight:650}
+.deck-actions .deck-button:disabled{opacity:.35}
+
+/* ── Detail sheet: shared-element open / close ── */
+.sheet,.sheet-backdrop{animation:none}
+.sheet-backdrop{background:#09090b99;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.sheet-flyer-layer{position:fixed;inset:0;z-index:5;pointer-events:none}
+.sheet-flyer{position:fixed;object-fit:cover;box-shadow:0 20px 60px #000000a6;will-change:left,top,width,height}
+
+/* Pull up on the card: it lifts with the finger and the chevron wakes up */
+.profile-deck{--pull:0}
+.deck-card.top{translate:0 calc(var(--pull) * -30px);transition:translate .5s var(--ease-spring),scale .5s var(--ease-spring),filter .5s ease}
+.profile-deck.is-pulling .deck-card.top{transition:none}
+.deck-card .deck-more{transform:translateX(-50%) translateY(calc(var(--pull) * -10px)) scale(calc(1 + var(--pull) * .5));opacity:calc(.7 + var(--pull) * .3);transition:transform .4s var(--ease-spring),opacity .3s}
+.profile-deck.is-pulling .deck-card .deck-more{transition:none}
+
+/* While the sheet is open the card recedes behind it */
+.deck-card.top.sheet-open{translate:0 -8px;scale:.92;filter:brightness(.45)}
+
+/* Home actions mirror the detail sheet: restart · pass · che figo */
+.deck-actions{gap:18px}
+.deck-actions .deck-button.undo{width:48px;height:48px}
+.deck-actions .deck-button.pass,.deck-actions .deck-button.like{width:64px;height:64px;padding:0;border-radius:50%}
+.deck-actions .deck-button.like{background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 24px #f4e81c2e}
+.sheet-actions .deck-button.pass{color:var(--danger)}
+
+/* Home actions: restart · pass · Collabora · che figo */
+.deck-actions{gap:10px}
+.deck-actions .deck-button.undo{width:40px;height:40px}
+.deck-actions .deck-button.undo svg{width:16px;height:16px}
+.deck-actions .deck-button.pass,.deck-actions .deck-button.like{width:56px;height:56px}
+.deck-actions .collaborate{flex:0 1 auto;min-width:0;height:56px;min-height:56px;padding:0 22px;gap:8px;font-size:16px;font-weight:700;letter-spacing:0}
+.deck-actions .collaborate:disabled:not(.requested){opacity:.35;background:var(--surface-2);color:var(--text-2)}
+@media(max-width:359px){.deck-actions .collaborate{padding:0 14px;font-size:14px}}
+
+/* Undo lives on the card (top-left), the action row stays symmetric */
+.deck-undo{position:absolute;top:24px;left:14px;z-index:25;height:30px;display:flex;align-items:center;gap:6px;padding:0 12px 0 10px;border-radius:var(--r-pill);background:#09090b59;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:550;animation:deck-fade .3s both;transition:background .2s,transform .15s var(--ease-spring)}
+.deck-undo:hover{background:#09090ba6;color:var(--accent)}
+.deck-undo:active{transform:scale(.94)}
+.profile-deck.is-dragging .deck-undo,.profile-deck.is-leaving .deck-undo{opacity:0;pointer-events:none;transition:opacity .15s}
+.deck-actions{gap:14px}

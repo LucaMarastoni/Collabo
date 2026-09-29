@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ProjectPost from './ProjectPost';
-import { Heart, X, RotateCcw, Sparkles, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, Pointer, CircleHelp } from 'lucide-react';
+import { Heart, X, RotateCcw, Handshake, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, Pointer, CircleHelp } from 'lucide-react';
 const THRESHOLD = 110;
 const TAP_SLOP = 8;
 const OPEN_SHEET = 40;
@@ -9,9 +9,28 @@ const CLOSE_SHEET = 100;
 const COACH_KEY = 'collab.deckCoachSeen';
 function readCoachSeen() { try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return false; } }
 function writeCoachSeen() { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* storage unavailable */ } }
+const shownPostOf = (person, postId) => person?.posts.find(post => post.id === postId);
 export const slidesOf = person => person.posts.flatMap(post => (post.gallery || [{ image: post.image, alt: post.alt }]).map(item => ({ ...item, post })));
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 function haptic(ms) { try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
+const SHEET_IN = 'cubic-bezier(.2,.9,.25,1)';
+const SHEET_OUT = 'cubic-bezier(.45,0,.2,1)';
+const prefersReducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Animations can be paused (hidden tab, throttled page): never let the UI wait on them forever.
+const settle = (promise, duration) => Promise.race([promise, new Promise(resolve => setTimeout(resolve, duration + 250))]);
+// Flies a copy of an image between two screen rects; object-fit keeps it undistorted when the aspect ratio changes.
+function flyImage(layer, src, from, to, fromRadius, toRadius, duration, easing) {
+ const img = document.createElement('img');
+ img.src = src;
+ img.alt = '';
+ img.className = 'sheet-flyer';
+ const frame = (rect, radius) => ({ left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px`, borderRadius: radius });
+ Object.assign(img.style, frame(from, fromRadius));
+ layer.appendChild(img);
+ const done = () => img.remove();
+ const animation = img.animate([frame(from, fromRadius), frame(to, toRadius)], { duration, easing, fill: 'forwards' });
+ return settle(animation.finished, duration).then(done, done);
+}
 // Release speed in px/ms, measured over the last ~100ms of the gesture.
 function velocity(samples) {
  const last = samples.at(-1);
@@ -27,6 +46,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
  const frame = useRef(0);
  const timer = useRef();
  const shownPost = useRef(null);
+ const [shownPostId, setShownPostId] = useState(null);
  const [coach, setCoach] = useState(() => !readCoachSeen());
  const [top] = people;
  useEffect(() => () => { clearTimeout(timer.current); cancelAnimationFrame(frame.current); }, []);
@@ -44,7 +64,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   el.dataset.dir = p > 0.25 ? 'like' : p < -0.25 ? 'pass' : '';
  }
  function schedule(dx, dy) { position.current = { ...position.current, dx, dy }; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => paint(dx, dy)); }
- function release() { deckRef.current?.classList.remove('is-dragging'); cancelAnimationFrame(frame.current); paint(0, 0); }
+ function release() { const el = deckRef.current; el?.classList.remove('is-dragging', 'is-pulling'); el?.style.setProperty('--pull', 0); cancelAnimationFrame(frame.current); paint(0, 0); }
  useLayoutEffect(() => { setExit(null); deckRef.current?.classList.remove('is-leaving', 'is-dragging'); paint(0, 0, 1); }, [top?.id]);
  function decide(direction, { vx = 0, vy = 0 } = {}) {
   if (!top || exit) return;
@@ -77,9 +97,11 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   },
   onPointerMove(event) {
    const g = gesture.current;
-   if (g?.id !== event.pointerId || g.vertical) return;
+   if (g?.id !== event.pointerId) return;
    const dx = event.clientX - g.x, dy = event.clientY - g.y;
-   if (!g.horizontal && Math.abs(dy) > TAP_SLOP && Math.abs(dy) > Math.abs(dx)) { g.vertical = true; release(); return; }
+   // Vertical drag: the card lifts with the finger, hinting that the details are about to open.
+   if (g.vertical) { cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => deckRef.current?.style.setProperty('--pull', clamp(-dy / 180, -0.25, 1))); return; }
+   if (!g.horizontal && Math.abs(dy) > TAP_SLOP && Math.abs(dy) > Math.abs(dx)) { g.vertical = true; release(); deckRef.current.classList.add('is-pulling'); return; }
    if (!g.horizontal && Math.abs(dx) > TAP_SLOP) { g.horizontal = true; deckRef.current.classList.add('is-dragging'); }
    if (!g.horizontal) return;
    g.samples.push({ t: event.timeStamp, x: event.clientX, y: event.clientY });
@@ -107,9 +129,10 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   <div className="deck-stack">
    {!top && <div className="deck-empty"><strong>Hai visto tutti</strong><p>I progetti che ti sono piaciuti sono nella sezione “Che figo” del tuo profilo.</p></div>}
    {people.slice(0, 3).map((person, depth) => depth === 0
-    ? <PersonCard key={person.id} person={person} startPostId={startPostId} className={`deck-card top ${coach ? 'demo' : ''} ${returning?.id === person.id ? `return-${returning.from}` : ''}`} handlers={handlers} onDecide={decide} onShow={id => { shownPost.current = id; }} postStates={postStates} onCollaborate={onCollaborate}/>
+    ? <PersonCard key={person.id} person={person} startPostId={startPostId} className={`deck-card top ${coach ? 'demo' : ''} ${returning?.id === person.id ? `return-${returning.from}` : ''}`} handlers={handlers} onDecide={decide} onShow={id => { shownPost.current = id; setShownPostId(id); }} postStates={postStates} onCollaborate={onCollaborate}/>
     : <PersonCard key={person.id} person={person} className="deck-card behind" style={{ '--depth': depth }} hidden/>)}
    {!coach && top && !exit && <button className="deck-help" aria-label="Come funziona" title="Come funziona" onClick={() => setCoach(true)}><CircleHelp size={20}/></button>}
+   {!coach && canUndo && !exit && <button className="deck-undo" aria-label="Torna al progetto precedente" title="Torna indietro" onClick={onUndo}><RotateCcw size={16} aria-hidden="true"/><span>Indietro</span></button>}
    {coach && top && <div className="deck-coach" onPointerDown={dismissCoach}>
     <div className="coach-hand" aria-hidden="true"><Hand size={34}/></div>
     <ul>
@@ -122,9 +145,11 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
    </div>}
   </div>
   {(top || canUndo) && <div className={`deck-actions ${exit ? `exiting-${exit}` : ''}`} role="group" aria-label="Azioni sul progetto">
-   <button className="deck-button pass" aria-label="Passa questo progetto" disabled={!top || !!exit} onClick={() => decide('left')}><X size={20} aria-hidden="true"/><span>Passa</span></button>
-   <button className="deck-button undo" aria-label="Annulla ultima scelta" disabled={!canUndo || !!exit} onClick={onUndo}><RotateCcw size={18} aria-hidden="true"/><span>Indietro</span></button>
-   <button className="deck-button like" aria-label="Collabora con questo progetto" disabled={!top || !!exit} onClick={() => decide('right')}><Sparkles size={19} aria-hidden="true"/><span>Collab</span><ArrowRight size={18} aria-hidden="true"/></button>
+   <button className="deck-button pass" aria-label="Passa questo progetto" title="Passa" disabled={!top || !!exit} onClick={() => decide('left')}><X size={26} aria-hidden="true"/></button>
+   {shownPostOf(top, shownPostId)?.type === 'project'
+    ? <ProjectPost requested={postStates[shownPostId]?.requested} onCollaborate={() => onCollaborate(shownPostId)}/>
+    : <button className="collaborate" disabled title="Collabora è disponibile sui progetti"><Handshake size={21} aria-hidden="true"/><span>Collabora</span></button>}
+   <button className="deck-button like" aria-label="Che figo, salva il progetto nel profilo" title="Che figo" disabled={!top || !!exit} onClick={() => decide('right')}><Heart size={26} aria-hidden="true" fill={exit === 'right' ? 'currentColor' : 'none'}/></button>
   </div>}
  </section>;
 }
@@ -132,7 +157,10 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
  const slides = slidesOf(person);
  const [index, setIndex] = useState(() => Math.max(0, slides.findIndex(slide => slide.post.id === startPostId)));
  const [sheet, setSheet] = useState(false);
+ const [sheetLeaving, setSheetLeaving] = useState(false);
  const cardRef = useRef(null);
+ const photoRef = useRef(null);
+ const originRect = useRef(null);
  const shownIndex = useRef(index);
  const requestedIndex = useRef(index);
  const preloaded = useRef(new Map());
@@ -176,9 +204,16 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
  }
  function step(delta) { showSlide(requestedIndex.current + delta); }
  function onTap(event) { const box = event.currentTarget.getBoundingClientRect(); step(event.clientX - box.left < box.width / 3 ? -1 : 1); }
- function closeSheet() { setSheet(false); requestAnimationFrame(() => cardRef.current?.focus({ preventScroll: true })); }
+ function openSheet() {
+  if (sheet) return;
+  originRect.current = photoRef.current?.getBoundingClientRect() || null;
+  haptic(10);
+  setSheetLeaving(false);
+  setSheet(true);
+ }
+ function closeSheet() { setSheet(false); setSheetLeaving(false); requestAnimationFrame(() => cardRef.current?.focus({ preventScroll: true })); }
  function onKeyDown(event) {
-  const keys = { ArrowRight: () => onDecide('right'), ArrowLeft: () => onDecide('left'), ArrowDown: () => step(1), ArrowUp: () => step(-1), Enter: () => setSheet(true) };
+  const keys = { ArrowRight: () => onDecide('right'), ArrowLeft: () => onDecide('left'), ArrowDown: () => step(1), ArrowUp: () => step(-1), Enter: openSheet };
   if (keys[event.key]) { event.preventDefault(); keys[event.key](); }
  }
  const stop = { onPointerDown: event => event.stopPropagation() };
@@ -186,35 +221,66 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
   ref: cardRef, tabIndex: 0, 'aria-roledescription': 'scheda profilo', onKeyDown,
   'aria-label': `${person.name}, ${person.profession}. Tocca o usa le frecce su e giù per vedere i lavori, Invio per i dettagli, freccia destra che figo, freccia sinistra non mi interessa`,
   onPointerDown: handlers.onPointerDown, onPointerMove: handlers.onPointerMove,
-  onPointerUp: event => handlers.onPointerEnd(event, onTap, () => setSheet(true)), onPointerCancel: event => handlers.onPointerEnd(event, onTap, () => setSheet(true)),
+  onPointerUp: event => handlers.onPointerEnd(event, onTap, openSheet), onPointerCancel: event => handlers.onPointerEnd(event, onTap, openSheet),
  };
- return <article id={post.id} className={className} style={style} {...live}>
-  <img className="deck-photo" src={slide.image} alt={slide.alt} draggable={false}/>
+ return <article id={post.id} className={`${className} ${sheet && !sheetLeaving ? 'sheet-open' : ''}`} style={style} {...live}>
+  <img ref={photoRef} className="deck-photo" src={slide.image} alt={slide.alt} draggable={false}/>
   {slides.length > 1 && <div className="deck-progress" aria-hidden="true">{slides.map((item, i) => <span key={i} className={i <= index ? 'seen' : ''}/>)}</div>}
   {!hidden && <span className="visually-hidden" aria-live="polite">{`Lavoro ${index + 1} di ${slides.length}: ${post.title}`}</span>}
   <div className="deck-overlay">
    <div className="deck-caption">
-    <div className="deck-person"><img className="avatar small" src={person.avatar} alt="" draggable={false}/><span><strong>{person.name}</strong> · {person.profession}</span></div>
-    <h3>{post.title}</h3>
     <span className={`deck-type ${post.type}`}>{post.type === 'project' ? 'Progetto' : 'Portfolio'} · {post.location.split(',')[0]}</span>
+    <h3>{post.title}</h3>
+    <div className="deck-person"><img className="avatar small" src={person.avatar} alt="" draggable={false}/><span><strong>{person.name}</strong> · {person.profession}</span></div>
    </div>
-   {post.type === 'project' && !hidden && <div className="deck-collaborate" {...stop}><ProjectPost compact requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)}/></div>}
-   {!hidden && <button className="deck-more" aria-label="Mostra tutti i dettagli" aria-haspopup="dialog" {...stop} onClick={() => setSheet(true)}><ChevronUp size={18}/></button>}
+   {!hidden && <button className="deck-more" aria-label="Mostra tutti i dettagli" aria-haspopup="dialog" {...stop} onClick={openSheet}><ChevronUp size={18}/></button>}
   </div>
   <span className="deck-stamp like">Che figo!</span>
   <span className="deck-stamp pass">Non mi interessa</span>
-  {sheet && <DetailSheet person={person} post={post} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => showSlide(slides.findIndex(item => item.post.id === id))} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
+  {sheet && <DetailSheet person={person} post={post} image={slide.image} origin={originRect} onClosing={() => setSheetLeaving(true)} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => showSlide(slides.findIndex(item => item.post.id === id))} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
  </article>;
 }
-function DetailSheet({ person, post, requested, onCollaborate, onShowPost, onDecide, onClose }) {
+function DetailSheet({ person, post, image, origin, onClosing, requested, onCollaborate, onShowPost, onDecide, onClose }) {
  const [offset, setOffset] = useState(0);
- const [closing, setClosing] = useState(false);
+ const closing = useRef(false);
  const body = useRef(null);
  const panel = useRef(null);
+ const backdrop = useRef(null);
+ const cover = useRef(null);
+ const layer = useRef(null);
  const drag = useRef(null);
  const isProject = post.type === 'project';
  const projects = person.posts.filter(item => item.type === 'project').length;
- function close() { if (closing) return; setClosing(true); setTimeout(onClose, 220); }
+ const parts = () => panel.current.querySelectorAll('.sheet-grab, .sheet-body > section, .sheet-actions > *');
+ // Enter: the card photo flies into the cover, the panel is revealed from the bottom, content follows in a cascade.
+ useLayoutEffect(() => {
+  if (prefersReducedMotion()) return;
+  backdrop.current.animate([{ opacity: 0, backdropFilter: 'blur(0px)' }, { opacity: 1, backdropFilter: 'blur(14px)' }], { duration: 420, easing: 'ease-out' });
+  panel.current.animate([{ clipPath: 'inset(100% 0 0 0 round 32px 32px 0 0)' }, { clipPath: 'inset(0% 0 0 0 round 32px 32px 0 0)' }], { duration: 560, easing: SHEET_IN });
+  parts().forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 140 + i * 55, easing: SHEET_IN, fill: 'backwards' }));
+  const from = origin?.current, target = cover.current;
+  if (from && target) {
+   target.style.opacity = '0';
+   flyImage(layer.current, image, from, target.getBoundingClientRect(), '32px', '24px', 560, SHEET_IN).then(() => { target.style.opacity = ''; });
+  }
+ }, []);
+ // Exit: the same choreography in reverse, the cover lands back on the card.
+ function close() {
+  if (closing.current) return;
+  closing.current = true;
+  onClosing?.();
+  if (prefersReducedMotion()) { onClose(); return; }
+  const running = [...parts()].map(el => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-in', fill: 'forwards' }));
+  running.push(panel.current.animate([{ clipPath: 'inset(0% 0 0 0 round 32px 32px 0 0)' }, { clipPath: 'inset(100% 0 0 0 round 32px 32px 0 0)' }], { duration: 440, easing: SHEET_OUT, fill: 'forwards' }));
+  running.push(backdrop.current.animate([{ opacity: getComputedStyle(backdrop.current).opacity, backdropFilter: 'blur(14px)' }, { opacity: 0, backdropFilter: 'blur(0px)' }], { duration: 440, easing: 'ease-in', fill: 'forwards' }));
+  const from = cover.current?.getBoundingClientRect(), to = origin?.current;
+  let landing = Promise.resolve();
+  if (from && to && from.bottom > 0 && from.top < window.innerHeight) {
+   cover.current.style.opacity = '0';
+   landing = flyImage(layer.current, image, from, to, '24px', '32px', 460, SHEET_OUT);
+  }
+  settle(Promise.all([...running.map(animation => animation.finished), landing]), 460).then(onClose, onClose);
+ }
  useEffect(() => {
   panel.current?.focus();
   const onKey = event => { if (event.key === 'Escape') close(); };
@@ -246,12 +312,12 @@ function DetailSheet({ person, post, requested, onCollaborate, onShowPost, onDec
  grab.onPointerCancel = grab.onPointerUp;
  // Portal events still bubble through the React tree: keep them away from the card's gesture and key handlers.
  const isolate = event => event.stopPropagation();
- return createPortal(<div className={`sheet-root ${closing ? 'closing' : ''}`} onPointerDown={isolate} onPointerMove={isolate} onPointerUp={isolate} onPointerCancel={isolate} onKeyDown={isolate}>
-  <div className="sheet-backdrop" onClick={close} style={{ opacity: Math.max(0, 1 - offset / 400) }}/>
+ return createPortal(<div className="sheet-root" onPointerDown={isolate} onPointerMove={isolate} onPointerUp={isolate} onPointerCancel={isolate} onKeyDown={isolate}>
+  <div className="sheet-backdrop" ref={backdrop} onClick={close} style={{ opacity: Math.max(0, 1 - offset / 400) }}/>
   <div className={`sheet ${offset ? 'dragging' : ''}`} role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1} ref={panel} style={{ transform: `translateY(${offset}px)` }}>
    <div className="sheet-grab" {...grab}><span className="sheet-handle"/><div className="sheet-head"><img className="avatar small" src={person.avatar} alt=""/><div><h2 id="sheet-title">{post.title}</h2><span>{person.name} · {isProject ? 'Progetto' : 'Portfolio'}</span></div><button className="icon-button" aria-label="Chiudi dettagli" onPointerDown={event => event.stopPropagation()} onClick={close}><X size={22}/></button></div></div>
    <div className="sheet-body" ref={body}>
-    <img className="sheet-cover" src={post.image} alt={post.alt}/>
+    <img className="sheet-cover" ref={cover} src={image} alt={post.alt}/>
     <section><h4>{isProject ? 'Il progetto' : 'Il lavoro'}</h4><p className="deck-lead">{post.description}</p><span className="deck-category">{post.category}</span></section>
     <section><h4>{isProject ? 'In breve' : 'Info'}</h4><dl className="deck-facts">
      <div><dt><MapPin size={16}/>Dove</dt><dd>{post.location}</dd></div>
@@ -270,5 +336,6 @@ function DetailSheet({ person, post, requested, onCollaborate, onShowPost, onDec
     <button className="deck-button like" aria-label="Che figo, salva il progetto nel profilo" onClick={() => onDecide('right')}><Heart size={23}/></button>
    </div>
   </div>
+  <div className="sheet-flyer-layer" ref={layer} aria-hidden="true"/>
  </div>, document.body);
 }
