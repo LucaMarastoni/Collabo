@@ -1,19 +1,30 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, ArrowUpRight, Grid3X3, Layers, Pencil, X, Check, Sparkles, ChevronRight, UsersRound, Inbox } from 'lucide-react';
+import { MapPin, ArrowUpRight, Grid3X3, Layers, Pencil, X, Check, Sparkles, ChevronRight, UsersRound, Inbox, RotateCcw } from 'lucide-react';
 import Header from '../components/Header';
 import ProjectDetail, { projectSnapshot } from '../components/ProjectDetail';
 import { portfolio, profileProjects, posts } from '../data/mockData';
 
 const tabLabel = { portfolio: 'portfolio-tab', projects: 'projects-tab', saved: 'saved-tab' };
 
-export default function Profile({ user, setUser, notify, postStates, updatePost, applicationDecisions, setApplicationDecisions }) {
+export default function Profile({ user, setUser, notify, postStates, updatePost, personStates = {}, setPersonStates, applicationDecisions, setApplicationDecisions }) {
  const [params, setParams] = useSearchParams();
  const selectedProject = profileProjects.find(project => project.id === params.get('project'));
- const [tab, setTab] = useState(() => selectedProject ? 'projects' : 'portfolio');
+ const [tab, setTab] = useState(() => selectedProject ? 'projects' : params.get('tab') === 'saved' ? 'saved' : 'portfolio');
  const [editing, setEditing] = useState(false);
  const [draft, setDraft] = useState(user);
  const saved = posts.filter(post => postStates[post.id]?.cool);
+ // Passed cards stay recoverable: the most recent first, so an accidental swipe is never lost.
+ const passed = Object.entries(personStates)
+  .filter(([, state]) => state?.choice === 'passed')
+  .sort(([, a], [, b]) => b.at - a.at)
+  .slice(0, 10)
+  .map(([personId, state]) => ({ personId, post: posts.find(post => post.id === state.postId) }))
+  .filter(item => item.post);
+ function restore(personId, title) {
+  setPersonStates(previous => { const next = { ...previous }; delete next[personId]; return next; });
+  notify(`“${title}” torna nella Home`);
+ }
  const collaborationCount = profileProjects.reduce((total, project) => total + projectSnapshot(project, applicationDecisions).collaborators.length, 0);
 
  function openProject(id) {
@@ -62,7 +73,14 @@ export default function Profile({ user, setUser, notify, postStates, updatePost,
    <button id="saved-tab" role="tab" aria-selected={tab === 'saved'} aria-controls="profile-panel" className={tab === 'saved' ? 'active' : ''} onClick={() => setTab('saved')}><Sparkles size={17}/>Che figo<span>{saved.length}</span></button>
   </div>
   <div id="profile-panel" role="tabpanel" aria-labelledby={tabLabel[tab]}>
-   {tab === 'saved' ? (saved.length ? <div className="project-list">{saved.map(post => <article className="profile-project" key={post.id}><img src={post.image} alt=""/><div><span className="project-status status-0"><span/>{post.user.name} · {post.user.profession}</span><h2>{post.title}</h2><p>{post.description}</p></div><button className="icon-button remove-saved" aria-label={`Rimuovi ${post.title} da Che figo`} onClick={() => { updatePost(post.id, { cool: false }); notify('Progetto rimosso da Che figo'); }}><X size={18}/></button></article>)}</div> : <p className="saved-empty">Scorri a destra su un progetto nella home per salvarlo qui.</p>)
+   {tab === 'saved' ? <>
+    <h3 className="profile-section-title">Salvati <span>{saved.length}</span></h3>
+    {saved.length ? <div className="project-list">{saved.map(post => <article className="profile-project" key={post.id}><img src={post.image} alt=""/><div><span className="project-status status-0"><span/>{post.user.name} · {post.user.profession}</span><h2>{post.title}</h2><p>{post.description}</p></div><button className="icon-button remove-saved" aria-label={`Rimuovi ${post.title} da Che figo`} onClick={() => { updatePost(post.id, { cool: false }); notify('Progetto rimosso da Che figo'); }}><X size={18}/></button></article>)}</div> : <p className="saved-empty">Scorri a destra o tocca ♥ su un progetto nella Home per salvarlo qui.</p>}
+    {passed.length > 0 && <>
+     <h3 className="profile-section-title">Passati di recente <span>{passed.length}</span></h3>
+     <div className="project-list">{passed.map(({ personId, post }) => <article className="profile-project passed" key={personId}><img src={post.image} alt=""/><div><span className="project-status"><span/>{post.user.name} · {post.type === 'project' ? 'Progetto' : 'Portfolio'}</span><h2>{post.title}</h2><p>{post.description}</p></div><button className="restore-passed" onClick={() => restore(personId, post.title)}><RotateCcw size={15} aria-hidden="true"/>Rivedi</button></article>)}</div>
+    </>}
+   </>
    : tab === 'portfolio' ? <div className="portfolio-grid">{portfolio.map(item => <figure key={item.title}><img src={item.image} alt={item.title} loading="lazy"/><figcaption>{item.title}</figcaption></figure>)}</div>
    : <div className="project-list">{profileProjects.map(project => {
     const { collaborators, pending } = projectSnapshot(project, applicationDecisions);

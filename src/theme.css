@@ -290,7 +290,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 
 /* Page transitions */
 .route{animation:route-in .38s var(--ease-spring) backwards}
-@keyframes route-in{from{opacity:0;transform:translateY(10px)}}
+@keyframes route-in{from{opacity:0}}
 
 /* ── Home: ordered and recognisable ── */
 /* Header: just brand, search and notifications (profile lives in the tab bar) */
@@ -355,3 +355,73 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 .deck-undo:active{transform:scale(.94)}
 .profile-deck.is-dragging .deck-undo,.profile-deck.is-leaving .deck-undo{opacity:0;pointer-events:none;transition:opacity .15s}
 .deck-actions{gap:14px}
+
+/* ── #32 One reserved space for the floating tab bar (bar + gap + safe area) ── */
+:root{--nav-space:calc(90px + env(safe-area-inset-bottom))}
+@media(min-width:900px){:root{--nav-space:0px}}
+.app-shell{padding-bottom:var(--nav-space)}
+.home-screen,.chat{height:calc(100dvh - var(--nav-space))}
+.search-view{bottom:0}
+.search-view-content{padding-bottom:calc(var(--nav-space) + 16px)}
+.toast{bottom:calc(var(--nav-space) + 8px)}
+@media(min-width:900px){.home-screen,.chat{height:100dvh}.toast{bottom:28px}}
+
+/* ── #34 Tutorial: fades out while still blocking every tap ── */
+.deck-coach{cursor:pointer}
+.deck-coach.leaving{animation:coach-out .26s ease forwards;pointer-events:auto}
+@keyframes coach-out{from{opacity:1}to{opacity:0}}
+
+/* ── #37 Readable secondary text: lighter greys, nothing below 12px (11px only for bubble times) ── */
+:root{--text-2:#b6b6be;--text-3:#90909a}
+.notification-copy>small,.featured-author small,.featured-author>span>span,.result-badge,.notification-filters button>span,.profile-tabs button>span,.project-card-meta,.project-detail-metrics span,.application-person time,.conversation-meta time,.chat-header .chat-online,.deck-category,.result-author,.result-count{font-size:12px}
+.bubble time{font-size:11px;opacity:.75}
+.deck-card .deck-person span{color:#e4e4e7}
+
+/* ── #38 Touch targets: at least 44px, invisible extension where the visual is smaller ── */
+.icon-button{min-width:44px;min-height:44px}
+.featured-save{width:44px;height:44px}
+.profile-tabs button,.notification-filters button{min-height:44px}
+.search-clear{position:relative}
+.deck-help::after,.deck-undo::after,.deck-card .deck-more::after,.search-clear::after{content:'';position:absolute;inset:-8px}
+.home-screen .discovery-item{position:relative}
+.home-screen .discovery-item::after{content:'';position:absolute;inset:-4px 0}
+
+/* ── #6 #7 #8 Card: reason, type with icon, roles and facts ── */
+.deck-card .deck-overlay{padding-top:120px;background:linear-gradient(to top,#09090bf5 0%,#09090bcc 50%,#09090b00 100%)}
+.deck-caption{gap:7px}
+.deck-reason{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:550;color:var(--accent)}
+.deck-reason svg{flex-shrink:0}
+.deck-card .deck-type{display:inline-flex;align-items:center;gap:6px}
+.deck-roles{margin:0;font-size:14px;color:#d4d4d8}
+.deck-roles strong{color:#fff;font-weight:600}
+.deck-facts-row{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.deck-facts-row li{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--r-pill);background:#ffffff1a;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-weight:500;color:#f4f4f5}
+.deck-reason-text{display:flex;align-items:flex-start;gap:8px;font-size:15px;color:var(--text)}
+.deck-reason-text svg{flex-shrink:0;margin-top:3px;color:var(--accent)}
+
+/* ── #10 Action bar by card type: Collabora on projects, Vedi profilo on portfolio ── */
+.deck-actions .collaborate.secondary{background:var(--surface-2);color:var(--text);box-shadow:inset 0 1px 0 #ffffff0d}
+.deck-actions .collaborate.secondary:hover{background:var(--surface-3)}
+
+/* ── #11 Che figo: saved + recently passed ── */
+.profile-section-title{display:flex;align-items:center;gap:8px;margin:22px 4px 10px;font-size:15px;font-weight:650;text-align:left}
+.profile-section-title span{padding:1px 8px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-3);font-size:12px;font-weight:500}
+.profile-project.passed img{filter:grayscale(.5) brightness(.8)}
+.restore-passed{flex-shrink:0;align-self:center;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-size:13px;font-weight:600}
+.restore-passed:hover{background:var(--surface-3);color:var(--accent)}
+.deck-empty-link{margin-top:6px;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:var(--r-pill);background:var(--accent);color:var(--accent-ink);font-weight:650}
+/* #37 #38 follow-up from the audit */
+.conversation .unread,.notifications-kicker,.portfolio-grid figcaption,.profile-stats span{font-size:12px}
+.wordmark{display:inline-flex;align-items:center;min-height:44px}
+.home-screen .discovery-item{height:40px}
+.home-screen .discovery-item::after{inset:-2px 0}
+.home-screen .discovery-row{padding-top:4px}
+.deck-card .deck-more::after{inset:-10px}
+.notifications-summary>button,.search-section-heading>button{min-height:44px}
+.profile-links>a{position:relative}
+.profile-links>a::after{content:'';position:absolute;inset:-8px 0}
+.deck-card .deck-more{bottom:12px}.deck-card .deck-overlay{padding-bottom:40px}
+.profile-project p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.profile-project .project-status{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-project.passed>img{width:72px;height:88px}
+.restore-passed{padding:0 12px}

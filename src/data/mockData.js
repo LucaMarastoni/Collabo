@@ -48,7 +48,7 @@ export const users = [
  { id: 'pietro', name: 'Pietro Sala', username: 'pietro.outdoors', profession: 'Fotografo outdoor', avatar: photo('photo-1560250097-0b93528c311a', 100) },
  { id: 'sara', name: 'Sara De Luca', username: 'sara.forms', profession: '3D e motion artist', avatar: photo('photo-1487412720507-e7ab37603c6f', 100) },
 ];
-export const currentUser = { name: 'Luca', username: 'luca.visuals', profession: 'Videomaker', city: 'Milano, Italia', bio: 'Racconto storie attraverso immagini in movimento. Sempre alla ricerca di nuovi punti di vista e persone con cui creare.', portfolio: 'https://vimeo.com', avatar: photo('photo-1492562080023-ab3db95bfbce', 200) };
+export const currentUser = { name: 'Luca', username: 'luca.visuals', profession: 'Videomaker', city: 'Milano, Italia', bio: 'Racconto storie attraverso immagini in movimento. Sempre alla ricerca di nuovi punti di vista e persone con cui creare.', portfolio: 'https://vimeo.com', avatar: photo('photo-1492562080023-ab3db95bfbce', 200), skills: ['Videomaking', 'Montaggio', 'Color Grading', 'Regia'], interests: ['Video', 'Musica'], availableFrom: 'novembre' };
 export const posts = [
  { id: 'p1', type: 'project', user: users[0], image: images.mountain, alt: 'Vette delle Dolomiti illuminate dalla luce del mattino', title: 'Documentario sulle Alpi italiane', description: 'Un corto tra le Dolomiti. Cerco un fonico, un colorist e un assistente di produzione per raccontare queste montagne.', tags: ['Videomaking', 'Color Grading', 'Sound Design', 'Produzione', 'Montaggio'], likes: 128, comments: 12, time: '2 ore fa', category: 'CORTOMETRAGGIO', location: 'Dolomiti, Italia', period: 'Ott – Nov 2026', remote: true, discovery: 'Video', gallery: [{ image: images.mountain, alt: 'Vette delle Dolomiti' }, { image: images.forest, alt: 'Bosco alpino' }, { image: images.coast, alt: 'Paesaggio d’acqua' }, { image: images.desert, alt: 'Studio di luce sul paesaggio' }] },
  { id: 'p2', type: 'portfolio', user: users[1], image: images.architecture, alt: 'Architettura bianca dalle linee geometriche sotto un cielo azzurro', title: 'La forma del silenzio', description: 'Luce, geometrie e spazi da abitare. Una selezione dal mio ultimo progetto di fotografia architettonica.', tags: ['Fotografia', 'Architettura', 'Editoriale'], likes: 246, comments: 18, time: '4 ore fa', category: 'VISUAL DIARY / 024', location: 'Milano, Italia', discovery: 'Foto', gallery: [{ image: images.architecture, alt: 'Architettura e geometrie' }, { image: images.city, alt: 'Profilo urbano di notte' }, { image: images.portrait, alt: 'Ritratto in luce naturale' }] },
@@ -72,6 +72,20 @@ export const posts = [
  { id: 'p20', type: 'portfolio', user: users[14], image: images.ridge, alt: 'Escursionista su una cresta montana tra le nuvole', title: 'Oltre il sentiero', description: 'Una serie fotografica dedicata ai paesaggi attraversati a piedi e alle persone che li abitano.', tags: ['Fotografia', 'Outdoor', 'Paesaggio'], likes: 243, comments: 19, time: '6 giorni fa', category: 'OUTDOOR STORIES', location: 'Aosta, Italia', discovery: 'Foto', gallery: [{ image: images.ridge, alt: 'Creste montane tra le nuvole' }, { image: images.mountain, alt: 'Vette rocciose' }, { image: images.forest, alt: 'Bosco montano' }, { image: images.sunrise, alt: 'Alba sulle montagne' }] },
  { id: 'p21', type: 'portfolio', user: users[15], image: images.gradient, alt: 'Forme fluide viola, rosa e azzurre', title: 'Geografie morbide', description: 'Forme digitali che cambiano con la luce: esplorazioni tra modellazione 3D e movimento.', tags: ['3D art', 'Motion', 'Digital sculpture'], likes: 197, comments: 15, time: '6 giorni fa', category: 'DIGITAL FORMS', location: 'Genova, Italia', discovery: '3D', gallery: [{ image: images.gradient, alt: 'Forme digitali colorate' }, { image: images.color, alt: 'Superficie fluida viola' }, { image: images.ocean, alt: 'Riflessi sull’acqua' }] },
 ];
+// What a project needs to decide at a glance: open roles, team, commitment and budget (demo values).
+const projectFacts = {
+ p1: { roles: ['Fonico', 'Colorist', 'Assistente di produzione'], team: [1, 4], commitment: 'Weekend', budget: '€ 1.500' },
+ p3: { roles: ['Vocalist', 'Visual artist'], team: [1, 3], commitment: '2 sere a settimana', budget: 'Quota sui ricavi' },
+ p5: { roles: ['UI designer', 'Illustratore'], team: [2, 4], commitment: '6 h a settimana', budget: null },
+ p9: { roles: ['Illustratore', 'Fotografa'], team: [2, 4], commitment: '3 settimane', budget: '€ 800' },
+ p11: { roles: ['Voci', 'Montatore audio', 'Visual artist'], team: [1, 4], commitment: 'Flessibile', budget: 'Rimborso spese' },
+ p13: { roles: ['UX designer', 'Motion designer'], team: [1, 3], commitment: '8 h a settimana', budget: '€ 2.000' },
+ p15: { roles: ['Montaggio', 'Videomaking'], team: [1, 3], commitment: '4 giornate', budget: '€ 600' },
+ p16: { roles: ['Copywriter', 'Sviluppatore frontend'], team: [2, 4], commitment: 'Part-time', budget: '€ 3.000' },
+ p17: { roles: ['Compositore'], team: [1, 2], commitment: '2 settimane', budget: 'Da definire' },
+ p19: { roles: ['Voce narrante', 'Compositore', 'Color Grading'], team: [2, 5], commitment: 'Weekend', budget: '€ 1.200' },
+};
+posts.forEach(post => Object.assign(post, projectFacts[post.id]));
 export const creators = users.map(user => ({ ...user, posts: posts.filter(post => post.user.id === user.id) })).filter(user => user.posts.length);
 const conversationSeeds = [
  ['12:42', 2, 'Ciao Luca! Ho visto il tuo ultimo video, mi piace molto la fotografia.', 'Ti va di parlarne davanti a un caffè? ☕'],

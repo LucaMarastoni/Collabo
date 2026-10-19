@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ProjectPost from './ProjectPost';
-import { Heart, X, RotateCcw, Handshake, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, Pointer, CircleHelp } from 'lucide-react';
+import { relevanceReason } from '../data/relevance';
+import { Link } from 'react-router-dom';
+import { Heart, X, RotateCcw, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, CircleHelp, Layers, Image as ImageIcon, UserRound, Sparkles, Wallet, Timer } from 'lucide-react';
 const THRESHOLD = 110;
 const TAP_SLOP = 8;
 const OPEN_SHEET = 40;
@@ -11,6 +13,12 @@ function readCoachSeen() { try { return localStorage.getItem(COACH_KEY) === '1';
 function writeCoachSeen() { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* storage unavailable */ } }
 const shownPostOf = (person, postId) => person?.posts.find(post => post.id === postId);
 export const slidesOf = person => person.posts.flatMap(post => (post.gallery || [{ image: post.image, alt: post.alt }]).map(item => ({ ...item, post })));
+const typeLabel = post => post.type === 'project' ? 'Progetto' : 'Portfolio';
+const placeLabel = post => `${post.location.split(',')[0]}${post.type === 'project' ? (post.remote ? ' · anche remoto' : ' · in presenza') : ''}`;
+const teamLabel = post => post.team ? `${post.team[0]} di ${post.team[1]} nel team` : null;
+const COACH_FADE_MS = 260;
+// Capture can fail if the pointer is already gone (fast taps, synthetic events): the gesture still works without it.
+function capturePointer(event) { try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* pointer no longer active */ } }
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 function haptic(ms) { try { navigator.vibrate?.(ms); } catch { /* not supported */ } }
 const SHEET_IN = 'cubic-bezier(.2,.9,.25,1)';
@@ -38,7 +46,7 @@ function velocity(samples) {
  const dt = Math.max(1, last.t - first.t);
  return { vx: (last.x - first.x) / dt, vy: (last.y - first.y) / dt };
 }
-export default function ProfileDeck({ people, startPostId, postStates, onCollaborate, onDecide, onUndo, canUndo, returning }) {
+export default function ProfileDeck({ people, viewer, startPostId, postStates, onCollaborate, onDecide, onUndo, canUndo, returning }) {
  const [exit, setExit] = useState(null);
  const deckRef = useRef(null);
  const gesture = useRef(null);
@@ -47,9 +55,12 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
  const timer = useRef();
  const shownPost = useRef(null);
  const [shownPostId, setShownPostId] = useState(null);
+ // true while shown, 'leaving' while it fades out (it keeps swallowing taps), false once gone.
  const [coach, setCoach] = useState(() => !readCoachSeen());
+ const coachTimer = useRef();
+ const sheetOpener = useRef(null);
  const [top] = people;
- useEffect(() => () => { clearTimeout(timer.current); cancelAnimationFrame(frame.current); }, []);
+ useEffect(() => () => { clearTimeout(timer.current); clearTimeout(coachTimer.current); cancelAnimationFrame(frame.current); }, []);
  // Drag state lives in CSS variables on the deck so moving a card never re-renders React.
  function paint(dx, dy, tilt = position.current.tilt) {
   const el = deckRef.current;
@@ -85,7 +96,15 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
   const id = top.id, postId = shownPost.current;
   timer.current = setTimeout(() => onDecide(id, direction === 'right' ? 'liked' : 'passed', postId), ms);
  }
- function dismissCoach() { if (!coach) return; setCoach(false); writeCoachSeen(); }
+ function dismissCoach() {
+  if (coach !== true) return;
+  writeCoachSeen();
+  setCoach('leaving');
+  coachTimer.current = setTimeout(() => setCoach(false), COACH_FADE_MS);
+ }
+ function openCoach() { clearTimeout(coachTimer.current); setCoach(true); }
+ // The coach layer owns every pointer event until it has fully faded out, so nothing reaches the card below.
+ const swallow = event => { event.stopPropagation(); };
  const handlers = {
   onPointerDown(event) {
    if (exit || event.button > 0) return;
@@ -93,7 +112,7 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
    gesture.current = { x: event.clientX, y: event.clientY, id: event.pointerId, samples: [{ t: event.timeStamp, x: event.clientX, y: event.clientY }], armed: false };
    // Grabbing the lower half tilts the card the other way, like holding a real card.
    position.current.tilt = event.clientY - box.top < box.height / 2 ? 1 : -1;
-   event.currentTarget.setPointerCapture(event.pointerId);
+   capturePointer(event);
   },
   onPointerMove(event) {
    const g = gesture.current;
@@ -125,39 +144,40 @@ export default function ProfileDeck({ people, startPostId, postStates, onCollabo
    else release();
   },
  };
- return <section className="profile-deck" ref={deckRef} aria-label="Persone da scoprire">
+ const shown = shownPostOf(top, shownPostId);
+ return <section className="profile-deck" ref={deckRef} aria-label="Progetti e lavori da scoprire">
   <div className="deck-stack">
-   {!top && <div className="deck-empty"><strong>Hai visto tutti</strong><p>I progetti che ti sono piaciuti sono nella sezione “Che figo” del tuo profilo.</p></div>}
+   {!top && <div className="deck-empty"><strong>Hai visto tutti</strong><p>Quelli che hai salvato sono in “Che figo” nel tuo profilo, dove trovi anche quelli che hai passato.</p><Link className="deck-empty-link" to="/profile?tab=saved">Apri Che figo</Link></div>}
    {people.slice(0, 3).map((person, depth) => depth === 0
-    ? <PersonCard key={person.id} person={person} startPostId={startPostId} className={`deck-card top ${coach ? 'demo' : ''} ${returning?.id === person.id ? `return-${returning.from}` : ''}`} handlers={handlers} onDecide={decide} onShow={id => { shownPost.current = id; setShownPostId(id); }} postStates={postStates} onCollaborate={onCollaborate}/>
+    ? <PersonCard key={person.id} person={person} startPostId={startPostId} className={`deck-card top ${coach === true ? 'demo' : ''} ${returning?.id === person.id ? `return-${returning.from}` : ''}`} viewer={viewer} sheetOpener={sheetOpener} handlers={handlers} onDecide={decide} onShow={id => { shownPost.current = id; setShownPostId(id); }} postStates={postStates} onCollaborate={onCollaborate}/>
     : <PersonCard key={person.id} person={person} className="deck-card behind" style={{ '--depth': depth }} hidden/>)}
-   {!coach && top && !exit && <button className="deck-help" aria-label="Come funziona" title="Come funziona" onClick={() => setCoach(true)}><CircleHelp size={20}/></button>}
+   {!coach && top && !exit && <button className="deck-help" aria-label="Come funziona" title="Come funziona" onClick={openCoach}><CircleHelp size={20}/></button>}
    {!coach && canUndo && !exit && <button className="deck-undo" aria-label="Torna al progetto precedente" title="Torna indietro" onClick={onUndo}><RotateCcw size={16} aria-hidden="true"/><span>Indietro</span></button>}
-   {coach && top && <div className="deck-coach" onPointerDown={dismissCoach}>
+   {coach && top && <div className={`deck-coach ${coach === 'leaving' ? 'leaving' : ''}`} role="dialog" aria-label="Come funziona" onPointerDown={swallow} onPointerMove={swallow} onPointerUp={swallow} onClick={event => { swallow(event); dismissCoach(); }}>
     <div className="coach-hand" aria-hidden="true"><Hand size={34}/></div>
     <ul>
-     <li><ArrowRight size={17}/><span><strong>Scorri a destra</strong> se ti piace: lo salvi in Che figo</span></li>
-     <li><ArrowLeft size={17}/><span><strong>Scorri a sinistra</strong> se non ti interessa</span></li>
-     <li><ArrowUp size={17}/><span><strong>Scorri su</strong> per leggere tutti i dettagli</span></li>
-     <li><Pointer size={17}/><span><strong>Tocca la foto</strong> per vedere gli altri lavori</span></li>
+     <li><ArrowRight size={17}/><span><strong>Destra o ♥</strong>: lo salvi in Che figo</span></li>
+     <li><ArrowLeft size={17}/><span><strong>Sinistra o ✕</strong>: passi al prossimo</span></li>
+     <li><ArrowUp size={17}/><span><strong>Scorri su</strong>: leggi tutti i dettagli</span></li>
     </ul>
     <button className="primary-button" onClick={dismissCoach}>Ho capito</button>
    </div>}
   </div>
-  {(top || canUndo) && <div className={`deck-actions ${exit ? `exiting-${exit}` : ''}`} role="group" aria-label="Azioni sul progetto">
-   <button className="deck-button pass" aria-label="Passa questo progetto" title="Passa" disabled={!top || !!exit} onClick={() => decide('left')}><X size={26} aria-hidden="true"/></button>
-   {shownPostOf(top, shownPostId)?.type === 'project'
+  {top && <div className={`deck-actions ${exit ? `exiting-${exit}` : ''}`} role="group" aria-label={`Azioni sul ${shown?.type === 'project' ? 'progetto' : 'lavoro'}`}>
+   <button className="deck-button pass" aria-label="Passa" title="Passa" disabled={!!exit} onClick={() => decide('left')}><X size={26} aria-hidden="true"/></button>
+   {shown?.type === 'project'
     ? <ProjectPost requested={postStates[shownPostId]?.requested} onCollaborate={() => onCollaborate(shownPostId)}/>
-    : <button className="collaborate" disabled title="Collabora è disponibile sui progetti"><Handshake size={21} aria-hidden="true"/><span>Collabora</span></button>}
-   <button className="deck-button like" aria-label="Che figo, salva il progetto nel profilo" title="Che figo" disabled={!top || !!exit} onClick={() => decide('right')}><Heart size={26} aria-hidden="true" fill={exit === 'right' ? 'currentColor' : 'none'}/></button>
+    : <button className="collaborate secondary" disabled={!!exit} onClick={() => sheetOpener.current?.('author')}><UserRound size={20} aria-hidden="true"/><span>Vedi profilo</span></button>}
+   <button className="deck-button like" aria-label="Salva in Che figo" title="Salva in Che figo" disabled={!!exit} onClick={() => decide('right')}><Heart size={26} aria-hidden="true" fill={exit === 'right' ? 'currentColor' : 'none'}/></button>
   </div>}
  </section>;
 }
-function PersonCard({ person, startPostId, className, style, hidden, handlers, onDecide, onShow, postStates = {}, onCollaborate }) {
+function PersonCard({ person, viewer, sheetOpener, startPostId, className, style, hidden, handlers, onDecide, onShow, postStates = {}, onCollaborate }) {
  const slides = slidesOf(person);
  const [index, setIndex] = useState(() => Math.max(0, slides.findIndex(slide => slide.post.id === startPostId)));
  const [sheet, setSheet] = useState(false);
  const [sheetLeaving, setSheetLeaving] = useState(false);
+ const [sheetFocus, setSheetFocus] = useState(null);
  const cardRef = useRef(null);
  const photoRef = useRef(null);
  const originRect = useRef(null);
@@ -204,13 +224,15 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
  }
  function step(delta) { showSlide(requestedIndex.current + delta); }
  function onTap(event) { const box = event.currentTarget.getBoundingClientRect(); step(event.clientX - box.left < box.width / 3 ? -1 : 1); }
- function openSheet() {
+ function openSheet(section = null) {
   if (sheet) return;
+  setSheetFocus(typeof section === 'string' ? section : null);
   originRect.current = photoRef.current?.getBoundingClientRect() || null;
   haptic(10);
   setSheetLeaving(false);
   setSheet(true);
  }
+ useEffect(() => { if (sheetOpener) sheetOpener.current = openSheet; });
  function closeSheet() { setSheet(false); setSheetLeaving(false); requestAnimationFrame(() => cardRef.current?.focus({ preventScroll: true })); }
  function onKeyDown(event) {
   const keys = { ArrowRight: () => onDecide('right'), ArrowLeft: () => onDecide('left'), ArrowDown: () => step(1), ArrowUp: () => step(-1), Enter: openSheet };
@@ -219,7 +241,7 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
  const stop = { onPointerDown: event => event.stopPropagation() };
  const live = hidden ? { 'aria-hidden': true } : {
   ref: cardRef, tabIndex: 0, 'aria-roledescription': 'scheda profilo', onKeyDown,
-  'aria-label': `${person.name}, ${person.profession}. Tocca o usa le frecce su e giù per vedere i lavori, Invio per i dettagli, freccia destra che figo, freccia sinistra non mi interessa`,
+  'aria-label': `${typeLabel(post)}: ${post.title}, di ${person.name}. Frecce su e giù per gli altri lavori, Invio per i dettagli, freccia destra salva in Che figo, freccia sinistra passa`,
   onPointerDown: handlers.onPointerDown, onPointerMove: handlers.onPointerMove,
   onPointerUp: event => handlers.onPointerEnd(event, onTap, openSheet), onPointerCancel: event => handlers.onPointerEnd(event, onTap, openSheet),
  };
@@ -229,18 +251,30 @@ function PersonCard({ person, startPostId, className, style, hidden, handlers, o
   {!hidden && <span className="visually-hidden" aria-live="polite">{`Lavoro ${index + 1} di ${slides.length}: ${post.title}`}</span>}
   <div className="deck-overlay">
    <div className="deck-caption">
-    <span className={`deck-type ${post.type}`}>{post.type === 'project' ? 'Progetto' : 'Portfolio'} · {post.location.split(',')[0]}</span>
+    {viewer && <p className="deck-reason"><Sparkles size={13} aria-hidden="true"/>{relevanceReason(post, viewer)}</p>}
+    <span className={`deck-type ${post.type}`}>{post.type === 'project' ? <Layers size={13} aria-hidden="true"/> : <ImageIcon size={13} aria-hidden="true"/>}{typeLabel(post)}</span>
     <h3>{post.title}</h3>
+    {post.type === 'project'
+     ? <>
+      {post.roles && <p className="deck-roles">Cerca <strong>{post.roles.slice(0, 2).join(', ')}</strong>{post.roles.length > 2 && ` +${post.roles.length - 2}`}</p>}
+      <ul className="deck-facts-row" aria-label="In breve">
+       <li><MapPin size={13} aria-hidden="true"/>{placeLabel(post)}</li>
+       <li><CalendarDays size={13} aria-hidden="true"/>{post.period}</li>
+       {post.team && <li><Users size={13} aria-hidden="true"/>{post.team[0]}/{post.team[1]}</li>}
+       {post.budget && <li><Wallet size={13} aria-hidden="true"/>{post.budget}</li>}
+      </ul>
+     </>
+     : <p className="deck-roles">Competenze <strong>{post.tags.slice(0, 3).join(', ')}</strong></p>}
     <div className="deck-person"><img className="avatar small" src={person.avatar} alt="" draggable={false}/><span><strong>{person.name}</strong> · {person.profession}</span></div>
    </div>
-   {!hidden && <button className="deck-more" aria-label="Mostra tutti i dettagli" aria-haspopup="dialog" {...stop} onClick={openSheet}><ChevronUp size={18}/></button>}
+   {!hidden && <button className="deck-more" aria-label="Mostra tutti i dettagli" aria-haspopup="dialog" {...stop} onClick={() => openSheet()}><ChevronUp size={18}/></button>}
   </div>
   <span className="deck-stamp like">Che figo!</span>
-  <span className="deck-stamp pass">Non mi interessa</span>
-  {sheet && <DetailSheet person={person} post={post} image={slide.image} origin={originRect} onClosing={() => setSheetLeaving(true)} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => showSlide(slides.findIndex(item => item.post.id === id))} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
+  <span className="deck-stamp pass">Passo</span>
+  {sheet && <DetailSheet person={person} post={post} viewer={viewer} focus={sheetFocus} image={slide.image} origin={originRect} onClosing={() => setSheetLeaving(true)} requested={postStates[post.id]?.requested} onCollaborate={() => onCollaborate(post.id)} onShowPost={id => showSlide(slides.findIndex(item => item.post.id === id))} onDecide={direction => { closeSheet(); onDecide(direction); }} onClose={closeSheet}/>}
  </article>;
 }
-function DetailSheet({ person, post, image, origin, onClosing, requested, onCollaborate, onShowPost, onDecide, onClose }) {
+function DetailSheet({ person, post, viewer, focus, image, origin, onClosing, requested, onCollaborate, onShowPost, onDecide, onClose }) {
  const [offset, setOffset] = useState(0);
  const closing = useRef(false);
  const body = useRef(null);
@@ -258,10 +292,16 @@ function DetailSheet({ person, post, image, origin, onClosing, requested, onColl
   backdrop.current.animate([{ opacity: 0, backdropFilter: 'blur(0px)' }, { opacity: 1, backdropFilter: 'blur(14px)' }], { duration: 420, easing: 'ease-out' });
   panel.current.animate([{ clipPath: 'inset(100% 0 0 0 round 32px 32px 0 0)' }, { clipPath: 'inset(0% 0 0 0 round 32px 32px 0 0)' }], { duration: 560, easing: SHEET_IN });
   parts().forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 140 + i * 55, easing: SHEET_IN, fill: 'backwards' }));
-  const from = origin?.current, target = cover.current;
+  // Opened on a section further down: the cover is scrolled away, so skip the photo flight.
+  const from = focus ? null : origin?.current, target = cover.current;
   if (from && target) {
    target.style.opacity = '0';
    flyImage(layer.current, image, from, target.getBoundingClientRect(), '32px', '24px', 560, SHEET_IN).then(() => { target.style.opacity = ''; });
+  }
+  // "Vedi profilo" opens the sheet on the author section.
+  if (focus) {
+   const section = body.current?.querySelector(`[data-section="${focus}"]`);
+   if (section) body.current.scrollTop = section.offsetTop - body.current.offsetTop - 8;
   }
  }, []);
  // Exit: the same choreography in reverse, the cover lands back on the card.
@@ -287,7 +327,8 @@ function DetailSheet({ person, post, image, origin, onClosing, requested, onColl
   document.addEventListener('keydown', onKey);
   return () => document.removeEventListener('keydown', onKey);
  }, []);
- useEffect(() => { body.current?.scrollTo({ top: 0 }); }, [post.id]);
+ const firstPost = useRef(post.id);
+ useEffect(() => { if (post.id !== firstPost.current) { firstPost.current = post.id; body.current?.scrollTo({ top: 0 }); } }, [post.id]);
  // Dragging down from the top of the content pulls the whole sheet down.
  useEffect(() => {
   const el = body.current;
@@ -305,7 +346,7 @@ function DetailSheet({ person, post, image, origin, onClosing, requested, onColl
   return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd); };
  }, []);
  const grab = {
-  onPointerDown(event) { drag.current = { y: event.clientY, dy: 0, id: event.pointerId }; event.currentTarget.setPointerCapture(event.pointerId); },
+  onPointerDown(event) { drag.current = { y: event.clientY, dy: 0, id: event.pointerId }; capturePointer(event); },
   onPointerMove(event) { if (drag.current?.id !== event.pointerId) return; drag.current.dy = Math.max(0, event.clientY - drag.current.y); setOffset(drag.current.dy); },
   onPointerUp(event) { if (drag.current?.id !== event.pointerId) return; const { dy } = drag.current; drag.current = null; if (dy > CLOSE_SHEET) close(); else setOffset(0); },
  };
@@ -318,22 +359,26 @@ function DetailSheet({ person, post, image, origin, onClosing, requested, onColl
    <div className="sheet-grab" {...grab}><span className="sheet-handle"/><div className="sheet-head"><img className="avatar small" src={person.avatar} alt=""/><div><h2 id="sheet-title">{post.title}</h2><span>{person.name} · {isProject ? 'Progetto' : 'Portfolio'}</span></div><button className="icon-button" aria-label="Chiudi dettagli" onPointerDown={event => event.stopPropagation()} onClick={close}><X size={22}/></button></div></div>
    <div className="sheet-body" ref={body}>
     <img className="sheet-cover" ref={cover} src={image} alt={post.alt}/>
+    {viewer && <section><h4>Perché te lo mostriamo</h4><p className="deck-reason-text"><Sparkles size={15} aria-hidden="true"/>{relevanceReason(post, viewer)}</p></section>}
     <section><h4>{isProject ? 'Il progetto' : 'Il lavoro'}</h4><p className="deck-lead">{post.description}</p><span className="deck-category">{post.category}</span></section>
     <section><h4>{isProject ? 'In breve' : 'Info'}</h4><dl className="deck-facts">
      <div><dt><MapPin size={16}/>Dove</dt><dd>{post.location}</dd></div>
      {isProject && <div><dt><CalendarDays size={16}/>Quando</dt><dd>{post.period}</dd></div>}
      {isProject && <div><dt><Monitor size={16}/>Modalità</dt><dd>{post.remote ? 'Anche da remoto' : 'Solo in presenza'}</dd></div>}
+     {isProject && post.team && <div><dt><Users size={16}/>Team</dt><dd>{teamLabel(post)}</dd></div>}
+     {isProject && post.commitment && <div><dt><Timer size={16}/>Impegno</dt><dd>{post.commitment}</dd></div>}
+     {isProject && <div><dt><Wallet size={16}/>Budget</dt><dd>{post.budget || 'Non indicato'}</dd></div>}
      <div><dt><Tag size={16}/>Ambito</dt><dd>{post.discovery}</dd></div>
      <div><dt><Clock size={16}/>Pubblicato</dt><dd>{post.time}</dd></div>
     </dl></section>
-    <section><h4>{isProject ? 'Chi sta cercando' : 'Competenze'}</h4><div className="tags">{post.tags.map(tag => <span className="tag" key={tag}>{isProject && <Users size={13}/>}{tag}</span>)}</div>{isProject && <p className="deck-note">Se una di queste figure sei tu, proponiti con Collabora: {person.name.split(' ')[0]} riceverà la tua richiesta.</p>}</section>
-    <section><h4>Chi è</h4><div className="deck-author"><img className="avatar" src={person.avatar} alt=""/><div><strong>{person.name}</strong><span>@{person.username} · {person.profession}</span><span>{projects} {projects === 1 ? 'progetto' : 'progetti'} · {person.posts.length - projects} portfolio</span></div></div></section>
+    <section><h4>{isProject ? 'Ruoli cercati' : 'Competenze'}</h4><div className="tags">{(isProject && post.roles ? post.roles : post.tags).map(tag => <span className="tag" key={tag}>{isProject && <Users size={13}/>}{tag}</span>)}</div>{isProject && <p className="deck-note">Se una di queste figure sei tu, proponiti con Collabora: {person.name.split(' ')[0]} riceverà la tua richiesta.</p>}</section>
+    <section data-section="author"><h4>Chi è</h4><div className="deck-author"><img className="avatar" src={person.avatar} alt=""/><div><strong>{person.name}</strong><span>@{person.username} · {person.profession}</span><span>{projects} {projects === 1 ? 'progetto' : 'progetti'} · {person.posts.length - projects} portfolio</span></div></div></section>
     {person.posts.length > 1 && <section><h4>Altri lavori</h4><div className="deck-others">{person.posts.filter(item => item.id !== post.id).map(item => <button key={item.id} onClick={() => onShowPost(item.id)}><img src={item.image} alt=""/><span>{item.title}</span></button>)}</div></section>}
    </div>
    <div className="sheet-actions">
-    <button className="deck-button pass" aria-label="Non mi interessa" onClick={() => onDecide('left')}><X size={24}/></button>
+    <button className="deck-button pass" aria-label="Passa" onClick={() => onDecide('left')}><X size={24}/></button>
     {isProject && <ProjectPost requested={requested} onCollaborate={onCollaborate}/>}
-    <button className="deck-button like" aria-label="Che figo, salva il progetto nel profilo" onClick={() => onDecide('right')}><Heart size={23}/></button>
+    <button className="deck-button like" aria-label="Salva in Che figo" onClick={() => onDecide('right')}><Heart size={23}/></button>
    </div>
   </div>
   <div className="sheet-flyer-layer" ref={layer} aria-hidden="true"/>
