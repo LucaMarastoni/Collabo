@@ -200,7 +200,8 @@ function PersonCard({ person, viewer, sheetOpener, startPostId, className, style
   preloaded.current = cache;
   return () => { mounted.current = false; requestedIndex.current = -1; };
  }, [person.id]);
- useLayoutEffect(() => { onShow?.(post.id); }, [post.id]);
+ // Also report when a card behind is promoted to the top: same component, but now it is the one on screen.
+ useLayoutEffect(() => { if (!hidden) onShow?.(post.id); }, [post.id, hidden]);
  function showSlide(target) {
   const next = Math.max(0, Math.min(slides.length - 1, target));
   requestedIndex.current = next;
