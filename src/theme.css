@@ -12,9 +12,10 @@
  --text:#f4f4f5;
  --text-2:#a1a1aa;
  --text-3:#71717a;
- --accent:#f4e81c;
- --accent-soft:#f4e81c1f;
- --accent-ink:#141400;
+ --accent:#1e88e5;
+ --accent-text:#64b5f6;
+ --accent-soft:#1e88e51f;
+ --accent-ink:#06121f;
  --danger:#ff6b81;
  --r-sm:12px;
  --r-md:18px;
@@ -44,7 +45,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .primary-button:active,.collaborate:not(:disabled):active{transform:scale(.96)}
 .primary-button{background:var(--accent);color:var(--accent-ink);min-height:50px}
 .collaborate{background:var(--accent);color:var(--accent-ink)}
-.collaborate.requested{background:var(--surface-2);color:var(--accent)}
+.collaborate.requested{background:var(--surface-2);color:var(--accent-text)}
 .tag{background:var(--surface-2);border:0;border-radius:var(--r-pill);color:#e4e4e7}
 .toast{left:50%;bottom:calc(100px + env(safe-area-inset-bottom));padding:12px 18px;border:1px solid var(--line-strong);border-left:1px solid var(--line-strong);border-radius:var(--r-pill);background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:var(--shadow);font-size:13px;font-weight:550}
 
@@ -63,14 +64,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .bottom-nav{left:50%;right:auto;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 32px),360px);padding:6px;gap:4px;justify-content:space-between;border:1px solid var(--line-strong);border-radius:var(--r-pill);background:var(--glass);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:var(--shadow)}
 .bottom-nav a{flex:1;flex-direction:row;justify-content:center;gap:7px;min-width:0;height:48px;border-radius:var(--r-pill);color:var(--text-3);font-size:0;transition:background .25s var(--ease-spring),color .2s,font-size .2s}
 .bottom-nav a.active{background:var(--surface-3);color:var(--text);font-size:13px;font-weight:600}
-.bottom-nav a.active svg{color:var(--accent)}
+.bottom-nav a.active svg{color:var(--accent-text)}
 
 @media(min-width:900px){
  .app-shell{padding-bottom:0}
  .sidebar{border:1px solid var(--line-strong);border-radius:var(--r-xl);background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--shadow)}
  .sidebar nav a{border-radius:var(--r-md)}
  .sidebar nav a:hover{background:var(--surface-2)}
- .sidebar nav a.active{background:var(--surface-3);color:var(--accent)}
+ .sidebar nav a.active{background:var(--surface-3);color:var(--accent-text)}
  .toast{bottom:28px}
 }
 
@@ -95,7 +96,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .deck-stamp.pass{font-size:14px}
 .deck-card .deck-person .avatar.small{width:24px;height:24px}
 .deck-card .deck-overlay h3{font-size:22px}
-.collaborate.compact{width:52px;height:52px;box-shadow:0 8px 24px #f4e81c33}
+.collaborate.compact{width:52px;height:52px;box-shadow:0 8px 24px #1e88e533}
 .deck-empty{border:1px dashed var(--line-strong);background:var(--surface-1)}
 .deck-coach{background:#09090bcc;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .deck-coach .primary-button{min-height:46px;padding:0 28px}
@@ -109,8 +110,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .deck-actions .deck-button.pass:not(:disabled):hover{background:var(--surface-3);box-shadow:none}
 .deck-actions .deck-button.undo{height:50px;width:100%;background:transparent;border:1px solid var(--line-strong);box-shadow:none;color:var(--text-2)}
 .deck-actions .deck-button.undo:not(:disabled):hover{background:var(--surface-1);border-color:var(--line-strong)}
-.deck-actions .deck-button.like{background:var(--accent);border:0;color:var(--accent-ink);box-shadow:0 8px 24px #f4e81c2e}
-.deck-actions .deck-button.like:not(:disabled):hover{background:#fff04a;box-shadow:0 8px 28px #f4e81c4d}
+.deck-actions .deck-button.like{background:var(--accent);border:0;color:var(--accent-ink);box-shadow:0 8px 24px #1e88e52e}
+.deck-actions .deck-button.like:not(:disabled):hover{background:#42a5f5;box-shadow:0 8px 28px #1e88e54d}
 .deck-actions.exiting-left .pass:disabled,.deck-actions.exiting-right .like:disabled{box-shadow:none}
 
 /* Detail sheet */
@@ -198,7 +199,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .profile-tabs{margin:20px 0 0;padding:4px;gap:4px;border:0;border-radius:var(--r-pill);background:var(--surface-1)}
 .profile-tabs button{padding:10px 6px;border:0;border-radius:var(--r-pill);color:var(--text-2);font-weight:550;transition:background .25s var(--ease-spring),color .2s}
 .profile-tabs button.active{background:var(--surface-3);color:var(--text);border:0}
-.profile-tabs button.active svg{color:var(--accent)}
+.profile-tabs button.active svg{color:var(--accent-text)}
 .profile-tabs button>span{margin-left:0;padding:1px 7px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-3)}
 .portfolio-grid{margin:14px 0 0;gap:6px}
 .portfolio-grid figure{border-radius:var(--r-md)}
@@ -225,9 +226,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 
 /* Notifications */
 .notifications-page{padding:12px 16px 24px}
-.notifications-summary{border:0;border-radius:var(--r-xl);background:linear-gradient(135deg,#f4e81c24,var(--surface-1) 60%)}
+.notifications-summary{border:0;border-radius:var(--r-xl);background:linear-gradient(135deg,#1e88e524,var(--surface-1) 60%)}
 .notifications-summary>button{border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--accent-ink);min-height:42px;padding:0 16px}
-.notifications-summary>button:hover:not(:disabled){background:#fff04a}
+.notifications-summary>button:hover:not(:disabled){background:#42a5f5}
 .notification-filters{padding:4px;gap:4px;width:max-content;border-radius:var(--r-pill);background:var(--surface-1)}
 .notification-filters button{min-height:38px;border:0;border-radius:var(--r-pill);background:transparent;color:var(--text-2)}
 .notification-filters button.active{background:var(--surface-3);color:var(--text);border:0;font-weight:600}
@@ -255,7 +256,7 @@ h1,h2,h3{font-weight:650;letter-spacing:-.035em}
 .wordmark{font-weight:700;letter-spacing:-.07em}
 
 /* Ambient light behind everything */
-body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),radial-gradient(60% 40% at 100% 110%,#8b7cf614,transparent 60%),var(--bg);background-attachment:fixed}
+body{background:radial-gradient(90% 55% at 50% -12%,#1e88e517,transparent 62%),radial-gradient(60% 40% at 100% 110%,#8b7cf614,transparent 60%),var(--bg);background-attachment:fixed}
 .app-shell,.header,.home-screen>.header,.search-view,.search-view-header{background-color:transparent}
 .header:not(.home-screen>.header){background:#09090b99}
 .search-view{background:#09090bf2;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
@@ -337,7 +338,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 .deck-actions{gap:18px}
 .deck-actions .deck-button.undo{width:48px;height:48px}
 .deck-actions .deck-button.pass,.deck-actions .deck-button.like{width:64px;height:64px;padding:0;border-radius:50%}
-.deck-actions .deck-button.like{background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 24px #f4e81c2e}
+.deck-actions .deck-button.like{background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 24px #1e88e52e}
 .sheet-actions .deck-button.pass{color:var(--danger)}
 
 /* Home actions: restart · pass · Collabora · che figo */
@@ -351,7 +352,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 
 /* Undo lives on the card (top-left), the action row stays symmetric */
 .deck-undo{position:absolute;top:24px;left:14px;z-index:25;height:30px;display:flex;align-items:center;gap:6px;padding:0 12px 0 10px;border-radius:var(--r-pill);background:#09090b59;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:550;animation:deck-fade .3s both;transition:background .2s,transform .15s var(--ease-spring)}
-.deck-undo:hover{background:#09090ba6;color:var(--accent)}
+.deck-undo:hover{background:#09090ba6;color:var(--accent-text)}
 .deck-undo:active{transform:scale(.94)}
 .profile-deck.is-dragging .deck-undo,.profile-deck.is-leaving .deck-undo{opacity:0;pointer-events:none;transition:opacity .15s}
 .deck-actions{gap:14px}
@@ -389,7 +390,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 /* ── #6 #7 #8 Card: reason, type with icon, roles and facts ── */
 .deck-card .deck-overlay{padding-top:120px;background:linear-gradient(to top,#09090bf5 0%,#09090bcc 50%,#09090b00 100%)}
 .deck-caption{gap:7px}
-.deck-reason{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:550;color:var(--accent)}
+.deck-reason{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:550;color:var(--accent-text)}
 .deck-reason svg{flex-shrink:0}
 .deck-card .deck-type{display:inline-flex;align-items:center;gap:6px}
 .deck-roles{margin:0;font-size:14px;color:#d4d4d8}
@@ -397,7 +398,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 .deck-facts-row{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
 .deck-facts-row li{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--r-pill);background:#ffffff1a;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-weight:500;color:#f4f4f5}
 .deck-reason-text{display:flex;align-items:flex-start;gap:8px;font-size:15px;color:var(--text)}
-.deck-reason-text svg{flex-shrink:0;margin-top:3px;color:var(--accent)}
+.deck-reason-text svg{flex-shrink:0;margin-top:3px;color:var(--accent-text)}
 
 /* ── #10 Action bar by card type: Collabora on projects, Vedi profilo on portfolio ── */
 .deck-actions .collaborate.secondary{background:var(--surface-2);color:var(--text);box-shadow:inset 0 1px 0 #ffffff0d}
@@ -408,7 +409,7 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 .profile-section-title span{padding:1px 8px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-3);font-size:12px;font-weight:500}
 .profile-project.passed img{filter:grayscale(.5) brightness(.8)}
 .restore-passed{flex-shrink:0;align-self:center;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);font-size:13px;font-weight:600}
-.restore-passed:hover{background:var(--surface-3);color:var(--accent)}
+.restore-passed:hover{background:var(--surface-3);color:var(--accent-text)}
 .deck-empty-link{margin-top:6px;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:var(--r-pill);background:var(--accent);color:var(--accent-ink);font-weight:650}
 /* #37 #38 follow-up from the audit */
 .conversation .unread,.notifications-kicker,.portfolio-grid figcaption,.profile-stats span{font-size:12px}
@@ -425,3 +426,9 @@ body{background:radial-gradient(90% 55% at 50% -12%,#f4e81c17,transparent 62%),r
 .profile-project .project-status{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profile-project.passed>img{width:72px;height:88px}
 .restore-passed{padding:0 12px}
+
+/* Brand mark keeps the exact brand blue; everything else that is text uses --accent-text */
+.wordmark>span,.brand-symbol{color:var(--accent)}
+.notifications-kicker{text-transform:none}
+.profile-tabs button svg{flex-shrink:0}
+.deck-reason{text-shadow:0 1px 8px #000000b3}

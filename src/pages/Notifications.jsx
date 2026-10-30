@@ -26,7 +26,7 @@ export default function Notifications({ notifications, setNotifications }) {
   </header>
   <section className="notifications-page" aria-label="Le tue notifiche">
    <div className="notifications-summary">
-    <div><span className="notifications-kicker"><span/>LA TUA ATTIVITÀ</span><h2>{unreadCount ? `${unreadCount} novità da leggere` : 'Sei in pari'}</h2><p>{unreadCount ? 'Messaggi, candidature e aggiornamenti ai tuoi progetti.' : 'Hai letto tutte le notifiche. Torna quando ci sono novità.'}</p></div>
+    <div><span className="notifications-kicker"><span/>La tua attività</span><h2>{unreadCount ? `${unreadCount} novità da leggere` : 'Sei in pari'}</h2><p>{unreadCount ? 'Messaggi, candidature e aggiornamenti ai tuoi progetti.' : 'Hai letto tutte le notifiche. Torna quando ci sono novità.'}</p></div>
     <button type="button" onClick={markAllRead} disabled={!unreadCount}><CheckCheck size={17}/>Segna tutte come lette</button>
    </div>
 
