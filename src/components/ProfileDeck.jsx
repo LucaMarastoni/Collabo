@@ -4,6 +4,7 @@ import ProjectPost from './ProjectPost';
 import { relevanceReason } from '../data/relevance';
 import { Link } from 'react-router-dom';
 import { Heart, X, RotateCcw, MapPin, CalendarDays, Monitor, ChevronUp, Clock, Tag, Users, Hand, ArrowLeft, ArrowRight, ArrowUp, CircleHelp, Layers, Image as ImageIcon, UserRound, Sparkles, Wallet, Timer } from 'lucide-react';
+import { motion, useReducedMotion } from '../motion';
 const THRESHOLD = 110;
 const TAP_SLOP = 8;
 const OPEN_SHEET = 40;
@@ -52,6 +53,7 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
  const gesture = useRef(null);
  const position = useRef({ dx: 0, dy: 0, tilt: 1 });
  const frame = useRef(0);
+ const springFrame = useRef(0);
  const timer = useRef();
  const shownPost = useRef(null);
  const [shownPostId, setShownPostId] = useState(null);
@@ -60,7 +62,8 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
  const coachTimer = useRef();
  const sheetOpener = useRef(null);
  const [top] = people;
- useEffect(() => () => { clearTimeout(timer.current); clearTimeout(coachTimer.current); cancelAnimationFrame(frame.current); }, []);
+ const reducedMotion = useReducedMotion();
+ useEffect(() => () => { clearTimeout(timer.current); clearTimeout(coachTimer.current); cancelAnimationFrame(frame.current); cancelAnimationFrame(springFrame.current); }, []);
  // Drag state lives in CSS variables on the deck so moving a card never re-renders React.
  function paint(dx, dy, tilt = position.current.tilt) {
   const el = deckRef.current;
@@ -72,10 +75,35 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
   el.style.setProperty('--rot', `${clamp(dx * 0.06 * tilt, -35, 35)}deg`);
   el.style.setProperty('--like', Math.max(0, p));
   el.style.setProperty('--pass', Math.max(0, -p));
+  el.style.setProperty('--reveal', Math.abs(p));
   el.dataset.dir = p > 0.25 ? 'like' : p < -0.25 ? 'pass' : '';
  }
- function schedule(dx, dy) { position.current = { ...position.current, dx, dy }; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => paint(dx, dy)); }
- function release() { const el = deckRef.current; el?.classList.remove('is-dragging', 'is-pulling'); el?.style.setProperty('--pull', 0); cancelAnimationFrame(frame.current); paint(0, 0); }
+ function schedule(dx, dy) { cancelAnimationFrame(springFrame.current); position.current = { ...position.current, dx, dy }; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => paint(dx, dy)); }
+ function release({ vx = 0, vy = 0, immediate = false } = {}) {
+  const el = deckRef.current;
+  el?.classList.remove('is-dragging', 'is-pulling');
+  el?.style.setProperty('--pull', 0);
+  cancelAnimationFrame(frame.current);
+  cancelAnimationFrame(springFrame.current);
+  if (immediate || reducedMotion || (!position.current.dx && !position.current.dy)) { paint(0, 0); return; }
+  // A real damped spring: interruptible by the next pointer-down, with no React renders.
+  let { dx: x, dy: y } = position.current;
+  let speedX = vx * 1000, speedY = vy * 1000;
+  let previous = performance.now();
+  const { stiffness, damping, mass } = motion.spring.card;
+  const tick = now => {
+   const dt = Math.min((now - previous) / 1000, 1 / 30);
+   previous = now;
+   speedX += (-stiffness * x - damping * speedX) / mass * dt;
+   speedY += (-stiffness * y - damping * speedY) / mass * dt;
+   x += speedX * dt;
+   y += speedY * dt;
+   paint(x, y);
+   if (Math.abs(x) + Math.abs(y) < .45 && Math.abs(speedX) + Math.abs(speedY) < 7) paint(0, 0);
+   else springFrame.current = requestAnimationFrame(tick);
+  };
+  springFrame.current = requestAnimationFrame(tick);
+ }
  useLayoutEffect(() => { setExit(null); deckRef.current?.classList.remove('is-leaving', 'is-dragging'); paint(0, 0, 1); }, [top?.id]);
  function decide(direction, { vx = 0, vy = 0 } = {}) {
   if (!top || exit) return;
@@ -108,8 +136,9 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
  const handlers = {
   onPointerDown(event) {
    if (exit || event.button > 0) return;
+   cancelAnimationFrame(springFrame.current);
    const box = event.currentTarget.getBoundingClientRect();
-   gesture.current = { x: event.clientX, y: event.clientY, id: event.pointerId, samples: [{ t: event.timeStamp, x: event.clientX, y: event.clientY }], armed: false };
+   gesture.current = { x: event.clientX, y: event.clientY, baseX: position.current.dx, baseY: position.current.dy, id: event.pointerId, samples: [{ t: event.timeStamp, x: event.clientX, y: event.clientY }], armed: false };
    // Grabbing the lower half tilts the card the other way, like holding a real card.
    position.current.tilt = event.clientY - box.top < box.height / 2 ? 1 : -1;
    capturePointer(event);
@@ -120,14 +149,14 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
    const dx = event.clientX - g.x, dy = event.clientY - g.y;
    // Vertical drag: the card lifts with the finger, hinting that the details are about to open.
    if (g.vertical) { cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => deckRef.current?.style.setProperty('--pull', clamp(-dy / 180, -0.25, 1))); return; }
-   if (!g.horizontal && Math.abs(dy) > TAP_SLOP && Math.abs(dy) > Math.abs(dx)) { g.vertical = true; release(); deckRef.current.classList.add('is-pulling'); return; }
+   if (!g.horizontal && Math.abs(dy) > TAP_SLOP && Math.abs(dy) > Math.abs(dx)) { g.vertical = true; release({ immediate: true }); deckRef.current.classList.add('is-pulling'); return; }
    if (!g.horizontal && Math.abs(dx) > TAP_SLOP) { g.horizontal = true; deckRef.current.classList.add('is-dragging'); }
    if (!g.horizontal) return;
    g.samples.push({ t: event.timeStamp, x: event.clientX, y: event.clientY });
    if (g.samples.length > 8) g.samples.shift();
    const armed = Math.abs(dx) > THRESHOLD;
    if (armed !== g.armed) { g.armed = armed; if (armed) haptic(8); }
-   schedule(dx, dy * 0.3);
+   schedule(g.baseX + dx, g.baseY + dy * 0.3);
   },
   onPointerEnd(event, onTap, onVertical) {
    const g = gesture.current;
@@ -135,13 +164,13 @@ export default function ProfileDeck({ people, viewer, startPostId, postStates, o
    gesture.current = null;
    const dx = event.clientX - g.x, dy = event.clientY - g.y;
    const up = event.type === 'pointerup';
-   if (g.vertical) { release(); if (up && Math.abs(dy) > OPEN_SHEET) onVertical(); return; }
-   if (!g.horizontal) { release(); if (up && Math.abs(dx) < TAP_SLOP && Math.abs(dy) < TAP_SLOP) onTap(event); return; }
+   if (g.vertical) { release({ immediate: true }); if (up && Math.abs(dy) > OPEN_SHEET) onVertical(); return; }
+   if (!g.horizontal) { release({ immediate: true }); if (up && Math.abs(dx) < TAP_SLOP && Math.abs(dy) < TAP_SLOP) onTap(event); return; }
    g.samples.push({ t: event.timeStamp, x: event.clientX, y: event.clientY });
    const speed = velocity(g.samples);
    const flick = Math.abs(speed.vx) > 0.5 && Math.abs(dx) > 24 && Math.sign(speed.vx) === Math.sign(dx);
    if (up && (Math.abs(dx) > THRESHOLD || flick)) decide(dx > 0 ? 'right' : 'left', speed);
-   else release();
+   else release(speed);
   },
  };
  const shown = shownPostOf(top, shownPostId);

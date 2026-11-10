@@ -24,6 +24,10 @@
  --r-pill:999px;
  --glass:#0f0f12b8;
  --shadow:0 10px 40px #0000008c;
+ --motion-feedback:150ms;
+ --motion-short:220ms;
+ --motion-navigation:340ms;
+ --ease-standard:cubic-bezier(.2,.75,.25,1);
  --ease-spring:cubic-bezier(.2,1,.3,1);
  --muted:var(--text-2);
  --border:var(--line);
@@ -65,6 +69,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .bottom-nav a{flex:1;flex-direction:row;justify-content:center;gap:7px;min-width:0;height:48px;border-radius:var(--r-pill);color:var(--text-3);font-size:0;transition:background .25s var(--ease-spring),color .2s,font-size .2s}
 .bottom-nav a.active{background:var(--surface-3);color:var(--text);font-size:13px;font-weight:600}
 .bottom-nav a.active svg{color:var(--accent-text)}
+.bottom-nav a svg{transition:transform var(--motion-short) var(--ease-spring),color var(--motion-short)}
+.bottom-nav a:active svg{transform:scale(.86)}
+.bottom-nav a.active svg{transform:translateY(-1px) scale(1.06)}
+.route{animation:route-enter var(--motion-navigation) var(--ease-standard) both}
+.route-reduced{animation:route-fade 120ms ease-out both}
+@keyframes route-enter{from{opacity:0;transform:translate3d(0,8px,0)}}
+@keyframes route-fade{from{opacity:0}}
 
 @media(min-width:900px){
  .app-shell{padding-bottom:0}
@@ -84,10 +95,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .home-screen .discovery-item.active .discovery-ring{border:0;padding:0;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 .home-screen .discovery-item{color:var(--text-3);font-weight:500}
 .home-screen .discovery-item.active{color:var(--text)}
+.home-screen .discovery-item{transition:color var(--motion-short),transform var(--motion-feedback) var(--ease-spring)}
+.home-screen .discovery-item:active{transform:scale(.92)}
+.home-screen .discovery-ring img{transition:transform var(--motion-short) var(--ease-spring),filter var(--motion-short)}
+.home-screen .discovery-item.active .discovery-ring img{transform:scale(.92)}
 
 .profile-deck{isolation:isolate;padding:2px 14px 8px}
 .deck-card,.deck-empty,.deck-coach{border-radius:var(--r-xl)}
 .deck-card.top{box-shadow:0 20px 50px #000000b3}
+.deck-card.behind{transform:translate3d(0,calc((1 - var(--reveal)) * 10px),0) scale(calc(.965 + var(--reveal) * .035));opacity:calc(.72 + var(--reveal) * .28)}
+.profile-deck.is-dragging .deck-photo{transform:translate3d(calc(var(--dx) * -.018),calc(var(--dy) * -.018),0) scale(1.025)}
+.deck-photo{transition:transform var(--motion-short) var(--ease-standard);will-change:transform}
 .deck-card .deck-overlay{padding:80px 18px 30px;background:linear-gradient(to top,#09090bf2 0%,#09090b8c 45%,#09090b00 100%)}
 .deck-progress{top:12px;left:14px;right:14px;gap:5px}
 .deck-progress span{height:3px;border-radius:var(--r-pill)}
@@ -105,6 +123,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 
 .deck-actions{gap:10px;margin-top:12px}
 .deck-actions .deck-button{height:50px;border:0;border-radius:var(--r-pill);box-shadow:none;font-weight:650}
+.deck-actions .deck-button svg,.sheet-actions .deck-button svg{transition:transform var(--motion-feedback) var(--ease-spring),fill var(--motion-feedback)}
+.deck-actions .deck-button:not(:disabled):active svg,.sheet-actions .deck-button:not(:disabled):active svg{transform:scale(.82)}
+.deck-actions.exiting-right .deck-button.like svg{transform:scale(1.12);fill:currentColor}
 .deck-actions .deck-button.pass{background:var(--surface-2);border:0;box-shadow:none;color:var(--text)}
 .deck-actions .deck-button.pass svg{color:var(--danger)}
 .deck-actions .deck-button.pass:not(:disabled):hover{background:var(--surface-3);box-shadow:none}
